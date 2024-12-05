@@ -1,6 +1,6 @@
 package com.example.project_management_tool.controller;
 
-import com.example.project_management_tool.model.User;
+import com.example.project_management_tool.entity.User;
 import com.example.project_management_tool.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
