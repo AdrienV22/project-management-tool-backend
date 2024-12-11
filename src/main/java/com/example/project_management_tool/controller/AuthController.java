@@ -17,11 +17,16 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody Map<String, String> user) {
-        return authService.register(user);
+        String username = user.get("username");
+        String email = user.get("email");
+        String password = user.get("password");
+        return authService.register(username, email, password);
     }
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> credentials) {
-        return authService.login(credentials);
+        String email = credentials.get("email");
+        String password = credentials.get("password");
+        return authService.login(email, password);
     }
 }

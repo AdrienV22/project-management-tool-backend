@@ -7,9 +7,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.Map;
-import java.util.Optional;
-
 @Service
 public class AuthService {
 
@@ -35,9 +32,9 @@ public class AuthService {
     }
 
     public ResponseEntity<?> login(String email, String password) {
-        Optional<User> user = userRepository.findByEmail(email);
+        User user = userRepository.findByEmail(email).orElse(null);
 
-        if (user.isEmpty() || !passwordEncoder.matches(password, user.get().getPassword())) {
+        if (user == null || !passwordEncoder.matches(password, user.getPassword())) {
             return ResponseEntity.badRequest().body("Invalid email or password!");
         }
 
