@@ -1,8 +1,9 @@
 package com.example.project_management_tool.controller;
 
-import com.example.project_management_tool.model.Project;
+import com.example.project_management_tool.model.ProjectModel;
 import com.example.project_management_tool.repository.ProjectRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -12,17 +13,26 @@ import java.util.List;
 public class ProjectController {
 
     @Autowired
-    private ProjectRepository projectRepository;
+    private final ProjectRepository projectRepository;
+
+    public ProjectController(ProjectRepository projectRepository) {
+        this.projectRepository = projectRepository;
+    }
 
     // Endpoint pour récupérer tous les projets
     @GetMapping
-    public List<Project> getAllProjects() {
+    public List<ProjectModel> getAllProjects() {
         return projectRepository.findAll();
     }
 
     // Endpoint pour créer un projet
     @PostMapping
-    public Project createProject(@RequestBody Project project) {
+    public ProjectModel createProject(@RequestBody ProjectModel project) {
         return projectRepository.save(project);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<String> handleException(Exception e) {
+        return ResponseEntity.internalServerError().body("An error occurred: " + e.getMessage());
     }
 }

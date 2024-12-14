@@ -1,19 +1,22 @@
 package com.example.project_management_tool.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
-@Entity
+@Entity(name = "UserEntity")
+@Table(name="users")
 public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;  // identifiant unique pour chaque utilisateur
-
+    @NotNull
+    @Size(min = 3, max = 50)
     private String username;
     private String email;
+    @NotNull
+    @Size(min = 5)
     private String password;
 
     // Constructeur par défaut
