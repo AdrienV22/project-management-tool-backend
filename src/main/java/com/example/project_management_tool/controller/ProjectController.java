@@ -55,6 +55,15 @@ public class ProjectController {
         return projectRepository.save(project);
     }
 
+    public ProjectModel SetRole(User user, ProjectModel project, User.UserRole role, User target) {
+        if (!(user.getUserRole().equals(User.UserRole.ADMIN) && project.getAdminId().contains(user.getId())))
+        {
+            return null;
+        }
+        project.getUserList().stream().filter(u -> u.getId().equals(target.getId())).findFirst().get().setUserRole(role);
+        return projectRepository.save(project);
+    }
+
     // Endpoint pour créer un projet
     @PostMapping
     public ProjectModel createProject(@RequestBody ProjectModel project) {
@@ -67,7 +76,6 @@ public class ProjectController {
     public ProjectModel getProjectById(@PathVariable Long id) {
         return projectRepository.findById(id).orElse(null);
     }
-
 
 
     public ProjectModel addTask(TaskModel task, ProjectModel project) {
