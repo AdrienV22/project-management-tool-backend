@@ -1,9 +1,6 @@
 package com.example.project_management_tool.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -25,6 +22,10 @@ public class TaskModel {
     private String description;
 
     private LocalDate dueDate;
+
+    @ManyToOne
+    @JoinColumn(name = "project_id")
+    private ProjectModel ParentProject;
 
     @NotNull
     @Pattern(regexp = "En cours|Terminé|En attente", message = "Status must be one of: En cours, Terminé, En attente")
