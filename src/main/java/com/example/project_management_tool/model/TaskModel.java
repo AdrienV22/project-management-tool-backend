@@ -12,7 +12,7 @@ import java.time.LocalDate;
 
 @Entity
 @Data
-public class Task {
+public class TaskModel {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

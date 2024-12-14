@@ -1,6 +1,6 @@
 package com.example.project_management_tool.controller;
 
-import com.example.project_management_tool.model.Project;
+import com.example.project_management_tool.model.ProjectModel;
 import com.example.project_management_tool.repository.ProjectRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -21,13 +21,13 @@ public class ProjectController {
 
     // Endpoint pour récupérer tous les projets
     @GetMapping
-    public List<Project> getAllProjects() {
+    public List<ProjectModel> getAllProjects() {
         return projectRepository.findAll();
     }
 
     // Endpoint pour créer un projet
     @PostMapping
-    public Project createProject(@RequestBody Project project) {
+    public ProjectModel createProject(@RequestBody ProjectModel project) {
         return projectRepository.save(project);
     }
 

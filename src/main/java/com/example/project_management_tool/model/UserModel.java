@@ -12,7 +12,7 @@ import lombok.Data;
 @Entity
 @Table(name = "users")  // Vérifie bien que la table s'appelle "users"
 @Data
-public class User {
+public class UserModel {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;  // ID auto-généré par la base de données
@@ -28,3 +28,4 @@ public class User {
     @Size(min = 8, max = 50, message = "User password can't exceed size limit (8-50 characters)")
     private String password;  // Vérifie que ce champ correspond à la colonne de la table
 }
+

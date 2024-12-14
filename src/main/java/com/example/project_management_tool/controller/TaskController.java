@@ -1,6 +1,6 @@
 package com.example.project_management_tool.controller;
 
-import com.example.project_management_tool.model.Task;
+import com.example.project_management_tool.model.TaskModel;
 import com.example.project_management_tool.repository.TaskRepository;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,19 +17,19 @@ public class TaskController {
 
     // Endpoint pour récupérer toutes les tâches
     @GetMapping
-    public List<Task> getAllTasks() {
+    public List<TaskModel> getAllTasks() {
         return taskRepository.findAll();
     }
 
     // Endpoint pour récupérer une tâche par son ID
     @GetMapping("/{id}")
-    public Task getTaskById(@PathVariable Long id) {
+    public TaskModel getTaskById(@PathVariable Long id) {
         return taskRepository.findById(id).orElse(null);
     }
 
     // Endpoint pour créer une tâche
     @PostMapping
-    public Task createTask(@Valid @RequestBody Task task) {
+    public TaskModel createTask(@Valid @RequestBody TaskModel task) {
         return taskRepository.save(task);
     }
 }
