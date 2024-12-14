@@ -9,7 +9,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
-@Entity
+@Entity(name = "UserModel")
 @Table(name = "users")  // Vérifie bien que la table s'appelle "users"
 @Data
 public class UserModel {

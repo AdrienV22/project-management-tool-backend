@@ -10,7 +10,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 import java.time.LocalDate;
 
-@Entity
+@Entity(name = "ProjectModel")
 @Data
 public class ProjectModel {
     @Id
