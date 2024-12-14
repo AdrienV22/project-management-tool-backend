@@ -22,6 +22,12 @@ public class User {
     // Constructeur par défaut
     public User() {}
 
+    public User(String username, String email, String password) {
+        this.username = username;
+        this.email = email;
+        this.password = password;
+    }
+
     // Getters et setters pour chaque propriété
     public Long getId() {
         return id;
