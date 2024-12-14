@@ -19,3 +19,4 @@ public class User {
     private String email;     // Vérifie que ce champ correspond à la colonne de la table
     private String password;  // Vérifie que ce champ correspond à la colonne de la table
 }
+
