@@ -21,7 +21,7 @@ public class Task {
     @Size(min = 5, max = 50, message = "Project Title can't exceed size limit (5-50 characters)")
     private String title;
 
-    @Size(min = 5, max =250, message = "Project Title can't exceed size limit (5-50 characters)")
+    @Size(min = 5, max =250, message = "Project Title can't exceed size limit (5-250 characters)")
     private String description;
 
     private LocalDate dueDate;
