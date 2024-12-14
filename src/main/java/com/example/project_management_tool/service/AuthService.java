@@ -21,11 +21,11 @@ public class AuthService {
 
     public ResponseEntity<?> register(String username, String email, String password, User.UserRole userRole) {
         if (userRepository.existsByUsername(username)) {
-            return ResponseEntity.badRequest().body("Username is already taken!");
+            return ResponseEntity.badRequest().body("Cet nom d'utilisateur est déjà utilisé");
         }
 
         if (userRepository.existsByEmail(email)) {
-            return ResponseEntity.badRequest().body("Email is already in use!");
+            return ResponseEntity.badRequest().body("Cet email est déjà utilisé");
         }
 
         User newUser = new User(username, email, passwordEncoder.encode(password), userRole);
