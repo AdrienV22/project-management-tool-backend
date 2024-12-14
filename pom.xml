@@ -62,11 +62,11 @@
 			<version>1.18.24</version>
 			<scope>compile</scope> <!-- ou compile si vous l'utilisez lors de la compilation -->
 		</dependency>
-		<dependency>
-			<groupId>com.example</groupId>
-			<artifactId>project-management-tool</artifactId>
-			<version>0.0.1-SNAPSHOT</version>
-		</dependency>
+<!--		<dependency>-->
+<!--			<groupId>com.example</groupId>-->
+<!--			<artifactId>project-management-tool</artifactId>-->
+<!--			<version>0.0.1-SNAPSHOT</version>-->
+<!--		</dependency>-->
 	</dependencies>
 
 	<build>
