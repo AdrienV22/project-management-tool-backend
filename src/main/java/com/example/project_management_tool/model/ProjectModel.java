@@ -4,10 +4,10 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import com.example.project_management_tool.entity.User;
-
 import lombok.Data;
 import java.time.LocalDate;
 import java.util.List;
+
 
 @Entity(name = "ProjectModel")
 @Data
@@ -35,6 +35,7 @@ public class ProjectModel {
     @OneToMany
     private List<TaskModel> taskList;
 
+
     public ProjectModel() {}
 
     public ProjectModel(String name, String description, LocalDate startDate) {
@@ -43,3 +44,4 @@ public class ProjectModel {
         this.startDate = startDate;
     }
 }
+

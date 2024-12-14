@@ -39,6 +39,22 @@ public class ProjectController {
         return createProject(project);
     }
 
+    // Add user
+    public ProjectModel addUser(User user, ProjectModel project, User.UserRole role, String mail) {
+        if (!(user.getUserRole().equals(User.UserRole.ADMIN) ||user.getUserRole().equals(User.UserRole.MEMBRE)
+                && project.getAdminId().contains(user.getId())))
+        {
+            return null;
+        }
+        UserController userController = new UserController();
+        List<User> users = userController.getAllUsers();
+        User foundUser = users.stream().filter(u -> u.getEmail().equals(mail)).findFirst().orElse(null);
+        assert foundUser != null;
+        foundUser.setUserRole(role);
+        project.getUserList().add(foundUser);
+        return projectRepository.save(project);
+    }
+
     // Endpoint pour créer un projet
     @PostMapping
     public ProjectModel createProject(@RequestBody ProjectModel project) {
