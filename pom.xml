@@ -63,6 +63,12 @@
 			<scope>compile</scope> <!-- ou compile si vous l'utilisez lors de la compilation -->
 		</dependency>
 
+		<dependency>
+			<groupId>org.postgresql</groupId>
+			<artifactId>postgresql</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+
 		<!--		<dependency>-->
 		<!--			<groupId>com.example</groupId>-->
 		<!--			<artifactId>project-management-tool</artifactId>-->
