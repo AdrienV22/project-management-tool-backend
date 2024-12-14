@@ -1,5 +1,6 @@
 package com.example.project_management_tool.controller;
 
+import com.example.project_management_tool.model.ProjectModel;
 import com.example.project_management_tool.model.TaskModel;
 import com.example.project_management_tool.repository.TaskRepository;
 import jakarta.validation.Valid;
@@ -32,4 +33,12 @@ public class TaskController {
     public TaskModel createTask(@Valid @RequestBody TaskModel task) {
         return taskRepository.save(task);
     }
+
+
+    // Permet de rajouter un projet parent
+    public TaskModel addProject(TaskModel task, ProjectModel project) {
+        task.setParentProject(project);
+        return taskRepository.save(task);
+    }
+
 }

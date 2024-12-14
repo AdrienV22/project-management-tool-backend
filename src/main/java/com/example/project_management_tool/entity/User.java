@@ -8,7 +8,8 @@ import lombok.Setter;
 import java.util.*;
 
 import static java.lang.Boolean.FALSE;
-
+@Getter
+@Setter
 @Entity(name = "UserEntity")
 @Table(name="users")
 public class User {
@@ -17,30 +18,20 @@ public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;  // identifiant unique pour chaque utilisateur
-    @Getter
-    @Setter
     @NotNull
     @Size(min = 3, max = 50)
     private String username;
 
-    @Getter
-    @Setter
     @NotNull
     private String email;
 
-    @Getter
-    @Setter
     @NotNull
     @Size(min = 5)
     private String password;
 
-    @Getter
-    @Setter
     @NotNull
     UserRole UserRole;
 
-    @Getter
-    @Setter
     @ElementCollection
     private List<Long> tasks;
 
