@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
+import java.util.*;
 
 import static java.lang.Boolean.FALSE;
 
@@ -37,6 +38,11 @@ public class User {
     @Setter
     @NotNull
     UserRole UserRole;
+
+    @Getter
+    @Setter
+    @ElementCollection
+    private List<Long> tasks;
 
     // Constructeur par défaut
     public User() {}
