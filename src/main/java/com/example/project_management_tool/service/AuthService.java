@@ -19,19 +19,19 @@ public class AuthService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    public ResponseEntity<?> register(String username, String email, String password) {
+    public ResponseEntity<?> register(String username, String email, String password, User.UserRole userRole) {
         if (userRepository.existsByUsername(username)) {
-            return ResponseEntity.badRequest().body("Ce nom d'utilisateur est déjà utilisé!");
+            return ResponseEntity.badRequest().body("Username is already taken!");
         }
 
         if (userRepository.existsByEmail(email)) {
-            return ResponseEntity.badRequest().body("Cette email est déjà utilisé!");
+            return ResponseEntity.badRequest().body("Email is already in use!");
         }
 
-        User newUser = new User(username, email, passwordEncoder.encode(password));
+        User newUser = new User(username, email, passwordEncoder.encode(password), userRole);
         userRepository.save(newUser);
 
-        return ResponseEntity.ok("Utilisateur enregistré avec succès!");
+        return ResponseEntity.ok("User registered successfully!");
     }
 
     public ResponseEntity<?> login(String email, String password) {
@@ -41,6 +41,6 @@ public class AuthService {
             return ResponseEntity.badRequest().body("Invalid email or password!");
         }
 
-        return ResponseEntity.ok("Utilisateur connecté avec succès!");
+        return ResponseEntity.ok("User logged in successfully!");
     }
 }

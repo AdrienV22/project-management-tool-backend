@@ -20,7 +20,8 @@ public class AuthController {
         String username = user.get("username");
         String email = user.get("email");
         String password = user.get("password");
-        return authService.register(username, email, password);
+        User.UserRole role = User.UserRole.valueOf(user.get("UserRole"));
+        return authService.register(username, email, password, role);
     }
 
     @PostMapping("/login")
