@@ -1,5 +1,6 @@
 package com.example.project_management_tool.controller;
 
+import com.example.project_management_tool.entity.User;
 import com.example.project_management_tool.model.ProjectModel;
 import com.example.project_management_tool.model.TaskModel;
 import com.example.project_management_tool.repository.ProjectRepository;
@@ -7,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -26,17 +28,31 @@ public class ProjectController {
         return projectRepository.findAll();
     }
 
+    // Initialisation du projet
+    @PostMapping
+    public ProjectModel InitiateProject(String name, String description, LocalDate startDate, User user) {
+        ProjectModel project = new ProjectModel(name, description, startDate);
+        if (project.getId() == null) {
+            return null;
+        }
+        project.getAdminId().add(user.getId());
+        return createProject(project);
+    }
+
     // Endpoint pour créer un projet
     @PostMapping
     public ProjectModel createProject(@RequestBody ProjectModel project) {
         return projectRepository.save(project);
     }
 
+
     // Endpoint pour récupérer le projet en fonction de l'ID
     @GetMapping("/{id}")
     public ProjectModel getProjectById(@PathVariable Long id) {
         return projectRepository.findById(id).orElse(null);
     }
+
+
 
     public ProjectModel addTask(TaskModel task, ProjectModel project) {
         project.getTaskList().add(task);
