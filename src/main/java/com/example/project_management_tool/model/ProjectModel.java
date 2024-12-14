@@ -1,14 +1,12 @@
 package com.example.project_management_tool.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import lombok.Data;
 import java.time.LocalDate;
+import java.util.List;
 
 @Entity(name = "ProjectModel")
 @Data
@@ -24,6 +22,20 @@ public class ProjectModel {
     @Size(max = 500, message = "Description must respect size limit (500 characters)")
     private String description;
 
+    @ElementCollection
+    private List<Long> adminId;
+
     @NotNull(message = "Start date cannot be null")
     private LocalDate startDate;
+
+    @OneToMany
+    private List<TaskModel> taskList;
+
+    public ProjectModel() {}
+
+    public ProjectModel(String name, String description, LocalDate startDate) {
+        this.name = name;
+        this.description = description;
+        this.startDate = startDate;
+    }
 }

@@ -33,6 +33,6 @@ public class ProjectController {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleException(Exception e) {
-        return ResponseEntity.internalServerError().body("An error occurred: " + e.getMessage());
+        return ResponseEntity.internalServerError().body("Une erreur est survenue: " + e.getMessage());
     }
 }
