@@ -1,6 +1,8 @@
 package com.example.project_management_tool.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 @Entity
 @Table(name="users")
@@ -9,8 +11,12 @@ public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;  // identifiant unique pour chaque utilisateur
+    @NotNull
+    @Size(min = 3, max = 50)
     private String username;
     private String email;
+    @NotNull
+    @Size(min = 5)
     private String password;
 
     // Constructeur par défaut
