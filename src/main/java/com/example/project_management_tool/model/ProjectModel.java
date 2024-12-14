@@ -3,6 +3,7 @@ package com.example.project_management_tool.model;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import com.example.project_management_tool.entity.User;
 
 import lombok.Data;
 import java.time.LocalDate;
@@ -27,6 +28,9 @@ public class ProjectModel {
 
     @NotNull(message = "Start date cannot be null")
     private LocalDate startDate;
+
+    @OneToMany
+    private List<User> userList;
 
     @OneToMany
     private List<TaskModel> taskList;
