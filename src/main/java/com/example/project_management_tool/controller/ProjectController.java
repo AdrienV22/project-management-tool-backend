@@ -33,11 +33,12 @@ public class ProjectController {
     }
 
     // Endpoint pour récupérer le projet en fonction de l'ID
-    public ProjectModel getProjectById(Long id) {
+    @GetMapping("/{id}")
+    public ProjectModel getProjectById(@PathVariable Long id) {
         return projectRepository.findById(id).orElse(null);
     }
 
-    public ProjectModel addTaskById(TaskModel task, ProjectModel project) {
+    public ProjectModel addTask(TaskModel task, ProjectModel project) {
         project.getTaskList().add(task);
         return projectRepository.save(project);
     }
