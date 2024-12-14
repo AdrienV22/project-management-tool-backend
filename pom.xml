@@ -30,14 +30,14 @@
 		<dependency>
 			<groupId>jakarta.persistence</groupId>
 			<artifactId>jakarta.persistence-api</artifactId>
-			<version>3.1.0</version>
+<!--			<version>3.1.0</version>-->
 			<scope>provided</scope>
 		</dependency>
 
 		<dependency>
 			<groupId>jakarta.validation</groupId>
 			<artifactId>jakarta.validation-api</artifactId>
-			<version>3.0.2</version>
+<!--			<version>3.0.2</version>-->
 		</dependency>
 
 		<dependency>
@@ -59,8 +59,8 @@
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
-			<version>1.18.24</version>
-			<scope>compile</scope> <!-- ou compile si vous l'utilisez lors de la compilation -->
+<!--			<version>1.18.24</version>-->
+			<scope>compile</scope>
 		</dependency>
 
 		<dependency>
@@ -79,17 +79,22 @@
 	<build>
 		<plugins>
 			<plugin>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-maven-plugin</artifactId>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+<!--				<version>3.6.0</version>-->
 				<configuration>
-					<excludes>
-						<exclude>
+					<source>1.8</source>
+					<target>1.8</target>
+					<annotationProcessorPaths>
+						<path>
 							<groupId>org.projectlombok</groupId>
 							<artifactId>lombok</artifactId>
-						</exclude>
-					</excludes>
+							<version>1.18.24</version>
+						</path>
+					</annotationProcessorPaths>
 				</configuration>
 			</plugin>
 		</plugins>
 	</build>
+
 </project>
