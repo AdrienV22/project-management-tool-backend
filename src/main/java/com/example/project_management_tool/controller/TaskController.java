@@ -7,9 +7,9 @@ import com.example.project_management_tool.repository.TaskRepository;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.example.project_management_tool.entity.User;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -18,6 +18,7 @@ public class TaskController {
 
     @Autowired
     private TaskRepository taskRepository;
+
     @Autowired
     private ProjectRepository projectRepository;
 
@@ -40,14 +41,24 @@ public class TaskController {
 
     // Endpoint pour créer une tâche
     @PostMapping
-    public ProjectModel createTask(@Valid ProjectModel project,  @RequestParam User user, @RequestParam TaskModel task) {
+    public TaskModel createTask(@Valid ProjectModel project,  @RequestParam User user, @RequestParam TaskModel task) {
         if (project.getId() == null) {
             return null;
         }
-        if (project.getAdminId().contains(user.getId()))
+        if ((user.getUserRole().equals(User.UserRole.ADMIN) && project.getAdminId().contains(user.getId())
+                || (user.getUserRole().equals(User.UserRole.MEMBRE) && project.getUserList().contains(user))))
         {
             project.getTaskList().add(task);
         }
-        return projectRepository.save(project);
+        return taskRepository.save(task);
+    }
+
+    public TaskModel InitiateTask(String name, String description, LocalDate date, String status, TaskModel.Priority priority,
+                                  @RequestParam User user, @Valid ProjectModel project) {
+        if (project.getId() == null) {
+            return null;
+        }
+        TaskModel task = new TaskModel(name, description, date, project, status, priority);
+        return createTask(project, user, task);
     }
 }
