@@ -1,7 +1,9 @@
 package com.example.project_management_tool.controller;
 
 import com.example.project_management_tool.entity.User;
+import com.example.project_management_tool.model.TaskModel;
 import com.example.project_management_tool.repository.UserRepository;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -40,5 +42,14 @@ public class UserController {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleException(Exception e) {
         return ResponseEntity.internalServerError().body("An error occurred: " + e.getMessage());
+    }
+
+    @PostMapping
+    public User addTask(User user, @Valid User target, TaskModel task) {
+        if (!task.getParentProject().getUserList().contains(user) || user.getUserRole().equals(User.UserRole.OBSERVATEUR))
+            return null;
+        target.getProjectList().add(task.getParentProject());
+        target.getTasks().add(task.getId());
+        return userRepository.save(target);
     }
 }

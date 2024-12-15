@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/tasks")
@@ -53,13 +54,27 @@ public class TaskController {
         return taskRepository.save(task);
     }
 
-    public TaskModel InitiateTask(String name, String description, LocalDate date, String status, TaskModel.Priority priority,
-                                  @RequestParam User user, @Valid ProjectModel project) {
+    public TaskModel InitiateTask(String name, String description, LocalDate date, String status,
+                                  TaskModel.Priority priority, @RequestParam User user, @Valid ProjectModel project) {
         if (project.getId() == null) {
             return null;
         }
         TaskModel task = new TaskModel(name, description, date, project, status, priority);
         return createTask(project, user, task);
     }
-}
 
+    public TaskModel TaskVisualisation(@RequestParam User user, @Valid TaskModel task) {
+        if (task.getParentProject().getId() == null || !user.getProjectList().contains(task.getParentProject()))
+            return null;
+        return task;
+    }
+
+    public List<TaskModel> TasksVisualizationTask(@RequestParam User user, @RequestParam ProjectModel project,
+                                                  List<String> statusList) {
+        if (project.getId() == null ||  !user.getProjectList().contains(project))
+            return null;
+        return project.getTaskList().stream()
+                .filter(task -> statusList.contains(task.getStatus()))
+                .collect(Collectors.toList());
+    }
+}
