@@ -4,9 +4,14 @@ import com.example.project_management_tool.model.ProjectModel;
 import com.example.project_management_tool.model.TaskModel;
 import com.example.project_management_tool.repository.ProjectRepository;
 import com.example.project_management_tool.repository.TaskRepository;
+import com.example.project_management_tool.service.EmailService;
 import jakarta.validation.Valid;
+import org.hibernate.query.sqm.mutation.internal.cte.CteInsertStrategy;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.example.project_management_tool.entity.User;
+import org.springframework.mail.MailException;
+import org.springframework.mail.MailSender;
+import org.springframework.mail.SimpleMailMessage;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -27,17 +32,6 @@ public class TaskController {
     @GetMapping
     public List<TaskModel> getAllTasks() {
         return taskRepository.findAll();
-    }
-
-    // Endpoint pour récupérer une tâche par son ID
-    @GetMapping("/{id}")
-    public TaskModel getTaskById(@PathVariable Long id) {
-        return taskRepository.findById(id).orElse(null);
-    }
-
-    public TaskModel addProject(TaskModel task, ProjectModel project) {
-        task.setParentProject(project);
-        return taskRepository.save(task);
     }
 
     @PutMapping("/{taskId}")
@@ -68,6 +62,17 @@ public class TaskController {
         return taskRepository.save(task);
     }
 
+    // Endpoint pour récupérer une tâche par son ID
+    @GetMapping("/{id}")
+    public TaskModel getTaskById(@PathVariable Long id) {
+        return taskRepository.findById(id).orElse(null);
+    }
+
+    public TaskModel addProject(TaskModel task, ProjectModel project) {
+        task.setParentProject(project);
+        return taskRepository.save(task);
+    }
+
     // Endpoint pour créer une tâche
     @PostMapping
     public TaskModel createTask(@Valid ProjectModel project,  @RequestParam User user, @RequestParam TaskModel task) {
@@ -79,6 +84,19 @@ public class TaskController {
         {
             project.getTaskList().add(task);
         }
+        return taskRepository.save(task);
+    }
+
+    public TaskModel addUser(User user, TaskModel task, User.UserRole role, User target) {
+        if (!(user.getUserRole().equals(User.UserRole.ADMIN) ||user.getUserRole().equals(User.UserRole.MEMBRE)
+                && task.getParentProject().getAdminId().contains(user.getId())))
+        {
+            return null;
+        }
+        task.getParentProject().getUserList().add(target);
+        if (!EmailService.testMailSender())
+            return null;
+        EmailService.sendEmail(target);
         return taskRepository.save(task);
     }
 
@@ -97,8 +115,8 @@ public class TaskController {
         return task;
     }
 
-    public List<TaskModel> TasksVisualizationTask(@RequestParam User user, @RequestParam ProjectModel project,
-                                                  List<String> statusList) {
+    public List<TaskModel> TasksVisualization(@RequestParam User user, @RequestParam ProjectModel project,
+                                              List<String> statusList) {
         if (project.getId() == null ||  !user.getProjectList().contains(project))
             return null;
         return project.getTaskList().stream()
@@ -106,5 +124,3 @@ public class TaskController {
                 .collect(Collectors.toList());
     }
 }
-
-
