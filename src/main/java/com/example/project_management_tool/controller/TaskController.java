@@ -3,15 +3,12 @@ package com.example.project_management_tool.controller;
 import com.example.project_management_tool.model.ProjectModel;
 import com.example.project_management_tool.model.TaskModel;
 import com.example.project_management_tool.repository.ProjectRepository;
+import com.example.project_management_tool.repository.TaskHistoryRepository;
 import com.example.project_management_tool.repository.TaskRepository;
 import com.example.project_management_tool.service.EmailService;
 import jakarta.validation.Valid;
-import org.hibernate.query.sqm.mutation.internal.cte.CteInsertStrategy;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.example.project_management_tool.entity.User;
-import org.springframework.mail.MailException;
-import org.springframework.mail.MailSender;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -24,6 +21,7 @@ public class TaskController {
 
     @Autowired
     private TaskRepository taskRepository;
+    private TaskHistoryRepository taskHistoryRepository;
 
     @Autowired
     private ProjectRepository projectRepository;
@@ -34,30 +32,42 @@ public class TaskController {
         return taskRepository.findAll();
     }
 
-    // Permet de mettre à jour les tâches
     @PutMapping("/{taskId}")
-    public TaskModel updateTask(@PathVariable Long taskId, @RequestParam(required = false) String title,
+    public TaskModel updateTask(@RequestParam User user, @PathVariable Long taskId,
+                                @RequestParam(required = false) String title,
                                 @RequestParam(required = false) String description,
                                 @RequestParam(required = false) LocalDate date,
                                 @RequestParam(required = false) String status,
                                 @RequestParam(required = false) TaskModel.Priority priority) {
         TaskModel task = taskRepository.findById(taskId).orElse(null);
+
         if (task == null) {
             return null;
         }
+        TaskHistoryController taskHistoryController = new TaskHistoryController();
         if (title != null && !title.isBlank()) {
+            taskHistoryController.recordHistory(getTaskById(taskId), "title", task.getTitle(),
+                    title, user.getUsername());
             task.setTitle(title);
         }
         if (description != null && !description.isBlank()) {
+            taskHistoryController.recordHistory(getTaskById(taskId), "description",
+                    task.getTitle(), title, user.getUsername());
             task.setDescription(description);
         }
         if (date != null && date.isAfter(LocalDate.now())){
+            taskHistoryController.recordHistory(getTaskById(taskId), "date", task.getTitle(),
+                    title, user.getUsername());
             task.setDueDate(date);
         }
         if (status != null && !status.isBlank()) {
+            taskHistoryController.recordHistory(getTaskById(taskId), "status", task.getTitle(),
+                    title, user.getUsername());
             task.setStatus(status);
         }
         if (priority != null) {
+            taskHistoryController.recordHistory(getTaskById(taskId), "priority", task.getTitle(),
+                    title, user.getUsername());
             task.setPriority(priority);
         }
         return taskRepository.save(task);
