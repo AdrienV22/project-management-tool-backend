@@ -29,7 +29,7 @@ public class ProjectModel {
     @NotNull(message = "Start date cannot be null")
     private LocalDate startDate;
 
-    @OneToMany
+    @ManyToMany
     private List<User> userList;
 
     @OneToMany

@@ -33,7 +33,7 @@ public class User {
     @NotNull
     UserRole UserRole;
 
-    @ManyToOne
+    @ManyToMany
     private List<ProjectModel> projectList;
 
     @ElementCollection
