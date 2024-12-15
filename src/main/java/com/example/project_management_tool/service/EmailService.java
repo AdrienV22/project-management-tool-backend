@@ -43,9 +43,9 @@ public class EmailService {
         private static final Map<User.UserRole, String> EMAIL_BODY_MAP = new HashMap<>();
 
         static {
-            EMAIL_BODY_MAP.put(User.UserRole.ADMIN, "Mail Body for an admin");
-            EMAIL_BODY_MAP.put(User.UserRole.MEMBRE, "Mail Body for a member");
-            EMAIL_BODY_MAP.put(User.UserRole.OBSERVATEUR, "Mail Body for an outsider");
+            EMAIL_BODY_MAP.put(User.UserRole.ADMIN, "Une tâche vous a été attribuée!");
+            EMAIL_BODY_MAP.put(User.UserRole.MEMBRE, "Une tâche vous a été attribuée!");
+            EMAIL_BODY_MAP.put(User.UserRole.OBSERVATEUR, "Une tâche vous a été attribuée!");
         }
 
         public static String getEmailBody(User.UserRole role) {

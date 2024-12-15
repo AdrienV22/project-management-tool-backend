@@ -34,6 +34,7 @@ public class TaskController {
         return taskRepository.findAll();
     }
 
+    // Permet de mettre à jour les tâches
     @PutMapping("/{taskId}")
     public TaskModel updateTask(@PathVariable Long taskId, @RequestParam(required = false) String title,
                                 @RequestParam(required = false) String description,
