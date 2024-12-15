@@ -1,5 +1,6 @@
 package com.example.project_management_tool.entity;
 
+import com.example.project_management_tool.model.ProjectModel;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -31,6 +32,9 @@ public class User {
 
     @NotNull
     UserRole UserRole;
+
+    @ManyToOne
+    private List<ProjectModel> projectList;
 
     @ElementCollection
     private List<Long> tasks;
