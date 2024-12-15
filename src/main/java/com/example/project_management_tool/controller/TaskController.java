@@ -40,6 +40,34 @@ public class TaskController {
         return taskRepository.save(task);
     }
 
+    @PutMapping("/{taskId}")
+    public TaskModel updateTask(@PathVariable Long taskId, @RequestParam(required = false) String title,
+                                @RequestParam(required = false) String description,
+                                @RequestParam(required = false) LocalDate date,
+                                @RequestParam(required = false) String status,
+                                @RequestParam(required = false) TaskModel.Priority priority) {
+        TaskModel task = taskRepository.findById(taskId).orElse(null);
+        if (task == null) {
+            return null;
+        }
+        if (title != null && !title.isBlank()) {
+            task.setTitle(title);
+        }
+        if (description != null && !description.isBlank()) {
+            task.setDescription(description);
+        }
+        if (date != null && date.isAfter(LocalDate.now())){
+            task.setDueDate(date);
+        }
+        if (status != null && !status.isBlank()) {
+            task.setStatus(status);
+        }
+        if (priority != null) {
+            task.setPriority(priority);
+        }
+        return taskRepository.save(task);
+    }
+
     // Endpoint pour créer une tâche
     @PostMapping
     public TaskModel createTask(@Valid ProjectModel project,  @RequestParam User user, @RequestParam TaskModel task) {
@@ -78,3 +106,5 @@ public class TaskController {
                 .collect(Collectors.toList());
     }
 }
+
+
