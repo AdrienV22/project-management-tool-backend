@@ -21,6 +21,7 @@ public class TaskController {
 
     @Autowired
     private TaskRepository taskRepository;
+    @Autowired
     private TaskHistoryRepository taskHistoryRepository;
 
     @Autowired

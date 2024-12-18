@@ -29,7 +29,7 @@ public class ProjectController {
     }
 
     // Initialisation du projet
-    @PostMapping
+    @PostMapping("/initialize")
     public ProjectModel InitiateProject(String name, String description, LocalDate startDate, User user) {
         ProjectModel project = new ProjectModel(name, description, startDate);
         if (project.getId() == null) {

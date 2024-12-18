@@ -6,8 +6,8 @@ import jakarta.validation.constraints.Size;
 import com.example.project_management_tool.entity.User;
 import lombok.Data;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
-
 
 @Entity(name = "ProjectModel")
 @Data
@@ -35,13 +35,18 @@ public class ProjectModel {
     @OneToMany
     private List<TaskModel> taskList;
 
+    // Constructeur par défaut
+    public ProjectModel() {
+        this.adminId = new ArrayList<>(); // Initialisation des adminId
+        this.userList = new ArrayList<>(); // Initialisation des userList
+        this.taskList = new ArrayList<>(); // Initialisation des taskList
+    }
 
-    public ProjectModel() {}
-
+    // Constructeur avec arguments
     public ProjectModel(String name, String description, LocalDate startDate) {
+        this(); // Appel au constructeur par défaut pour initialiser les listes
         this.name = name;
         this.description = description;
         this.startDate = startDate;
     }
 }
-

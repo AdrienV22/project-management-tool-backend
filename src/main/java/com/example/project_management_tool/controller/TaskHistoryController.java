@@ -4,15 +4,19 @@ import com.example.project_management_tool.entity.TaskHistory;
 import com.example.project_management_tool.model.TaskModel;
 import com.example.project_management_tool.repository.TaskHistoryRepository;
 import com.example.project_management_tool.repository.TaskRepository;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
 
 import java.time.LocalDateTime;
 import java.util.List;
 
+@RestController
 public class TaskHistoryController {
 
+    @Autowired
     private TaskRepository taskRepository;
+    @Autowired
     private TaskHistoryRepository taskHistoryRepository;
 
     void recordHistory(TaskModel task, String fieldName, String oldValue, String newValue, String modifiedBy) {
