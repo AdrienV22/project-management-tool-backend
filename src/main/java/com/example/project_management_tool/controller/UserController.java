@@ -19,14 +19,12 @@ public class UserController {
 
 
 
-    @PostMapping
+    @PostMapping("/users")
     public User createUser(@RequestBody User user) {
-        // Log détaillé pour vérifier ce qui est reçu
         System.out.println("Données reçues dans createUser : " + user);
-
-        // Si l'objet est bien reçu, on va l'enregistrer dans la base de données
-        return userRepository.save(user);  // Sauvegarde l'utilisateur dans la base de données
+        return userRepository.save(user);
     }
+
     @GetMapping
     public List<User> getAllUsers() {
         return userRepository.findAll();
@@ -44,12 +42,22 @@ public class UserController {
         return ResponseEntity.internalServerError().body("An error occurred: " + e.getMessage());
     }
 
-    @PostMapping
-    public User addTask(User user, @Valid User target, TaskModel task) {
-        if (!task.getParentProject().getUserList().contains(user) || user.getUserRole().equals(User.UserRole.OBSERVATEUR))
-            return null;
+    @PostMapping("/users/{userId}/tasks")
+    public User addTask(
+            @PathVariable Long userId,
+            @Valid @RequestBody TaskModel task
+    ) {
+        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (!task.getParentProject().getUserList().contains(user) || user.getUserRole().equals(User.UserRole.OBSERVATEUR)) {
+            throw new RuntimeException("L'utilisateur n'est pas autorisé à ajouter cette tâche");
+        }
+
+        User target = userRepository.findById(task.getTargetUserId()).orElseThrow(() -> new RuntimeException("Target user not found"));
         target.getProjectList().add(task.getParentProject());
         target.getTasks().add(task.getId());
+
         return userRepository.save(target);
     }
+
 }

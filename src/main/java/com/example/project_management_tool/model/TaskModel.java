@@ -23,7 +23,7 @@ public class TaskModel {
     @Size(min = 5, max = 50, message = "Project Title can't exceed size limit (5-50 characters)")
     private String title;
 
-    @Size(min = 5, max =250, message = "Project Title can't exceed size limit (5-250 characters)")
+    @Size(min = 5, max = 250, message = "Project Title can't exceed size limit (5-250 characters)")
     private String description;
 
     private LocalDate dueDate;
@@ -40,9 +40,24 @@ public class TaskModel {
     @Enumerated(EnumType.STRING)
     private Priority priority;
 
+    // Nouvelle propriété pour l'utilisateur cible
+    @NotNull
+    private Long targetUserId;
 
     public TaskModel() {}
 
+    // Constructeur avec targetUserId
+    public TaskModel(String title, String description, LocalDate dueDate, ProjectModel parentProject, String status, Priority priority, Long targetUserId) {
+        this.title = title;
+        this.description = description;
+        this.dueDate = dueDate;
+        this.parentProject = parentProject;
+        this.status = status;
+        this.priority = priority;
+        this.targetUserId = targetUserId;
+    }
+
+    // Nouveau constructeur sans targetUserId
     public TaskModel(String title, String description, LocalDate dueDate, ProjectModel parentProject, String status, Priority priority) {
         this.title = title;
         this.description = description;
@@ -50,6 +65,7 @@ public class TaskModel {
         this.parentProject = parentProject;
         this.status = status;
         this.priority = priority;
+        this.targetUserId = null; // Par défaut, targetUserId sera null
     }
 
     public enum Priority {
