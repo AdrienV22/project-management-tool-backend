@@ -37,7 +37,7 @@ public class TaskModel {
     private String status; // Exemple : "En cours", "Terminé", "En attente"
 
     @NotNull
-    @Enumerated(EnumType.STRING)
+    // Si la priorité est 1, alors la priorité est HAUTE, si elle est de 2, alors MOYENNE, si elle est de 3, alors BASSE
     private Priority priority;
 
     // Nouvelle propriété pour l'utilisateur cible
