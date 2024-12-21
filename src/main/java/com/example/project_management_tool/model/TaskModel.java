@@ -65,7 +65,7 @@ public class TaskModel {
         this.parentProject = parentProject;
         this.status = status;
         this.priority = priority;
-        this.targetUserId = null; // Par défaut, targetUserId sera null
+        this.targetUserId = null;
     }
 
     public enum Priority {

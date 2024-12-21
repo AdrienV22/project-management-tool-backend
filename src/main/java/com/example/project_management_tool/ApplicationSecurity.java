@@ -13,11 +13,11 @@ public class ApplicationSecurity {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.ignoringRequestMatchers("/api/auth/**")) // Ignore CSRF pour les chemins spécifiés
+                .csrf(csrf -> csrf.disable()) // Désactiver la protection CSRF
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/register", "/api/auth/login").permitAll() // Autoriser ces chemins
-                        .requestMatchers("/static/**", "/public/**").permitAll() // Accès libre aux fichiers statiques
-                        .anyRequest().authenticated() // Toute autre requête nécessite une authentification
+                        .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
+                        .requestMatchers("/static/**", "/public/**").permitAll()
+                        .anyRequest().authenticated()
                 );
         return http.build();
     }
