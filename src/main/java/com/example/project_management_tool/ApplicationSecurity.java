@@ -14,11 +14,9 @@ public class ApplicationSecurity {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(AbstractHttpConfigurer::disable) // Désactiver la protection CSRF
+                .csrf(AbstractHttpConfigurer::disable) // Désactive la protection CSRF
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
-                        .requestMatchers("/static/**", "/public/**").permitAll()
-                        .anyRequest().authenticated()
+                        .anyRequest().permitAll() // Permet un accès libre à toutes les requêtes
                 );
         return http.build();
     }

@@ -51,8 +51,12 @@ public class User {
     }
 
     public enum UserRole {
+        // user_role = 1
         ADMIN,
+        // user_role = 2
         MEMBRE,
+        // user_role = 3
         OBSERVATEUR
     };
 }
+

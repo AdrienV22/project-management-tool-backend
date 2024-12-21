@@ -69,8 +69,11 @@ public class TaskModel {
     }
 
     public enum Priority {
+        // Priorité basse = 3
         BASSE,
+        // Priorité moyenne = 2
         MOYENNE,
+        // Priorité haute = 1
         HAUTE
     }
 }
