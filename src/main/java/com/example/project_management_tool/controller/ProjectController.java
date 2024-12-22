@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.util.List;
 
+@CrossOrigin(origins = "http://localhost:4200")  // Permet au frontend de se connecter depuis ce port
 @RestController
 @RequestMapping("/projects")
 public class ProjectController {
