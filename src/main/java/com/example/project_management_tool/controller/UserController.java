@@ -20,7 +20,7 @@ public class UserController {
 
 
 
-    @PostMapping("/users")
+    @PostMapping
     public User createUser(@RequestBody User user) {
         System.out.println("Données reçues dans createUser : " + user);
         return userRepository.save(user);
