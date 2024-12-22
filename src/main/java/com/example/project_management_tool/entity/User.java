@@ -8,7 +8,6 @@ import lombok.Getter;
 import lombok.Setter;
 import java.util.*;
 
-import static java.lang.Boolean.FALSE;
 @Getter
 @Setter
 @Entity(name = "UserEntity")
@@ -31,8 +30,8 @@ public class User {
     private String password;
 
     @NotNull
-    @Enumerated(EnumType.STRING)
-    UserRole UserRole;
+    @Enumerated(EnumType.ORDINAL)  // Utilise EnumType.ORDINAL pour enregistrer l'énumération sous forme d'entier
+    private UserRole userRole;
 
     @ManyToMany
     private List<ProjectModel> projectList;
@@ -47,16 +46,23 @@ public class User {
         this.username = username;
         this.email = email;
         this.password = password;
-        this.UserRole = role;
+        this.userRole = role;
     }
 
+    @Getter
     public enum UserRole {
         // user_role = 1
-        ADMIN,
+        ADMIN(1),
         // user_role = 2
-        MEMBRE,
+        MEMBRE(2),
         // user_role = 3
-        OBSERVATEUR
-    };
-}
+        OBSERVATEUR(3);
 
+        private final int value;
+
+        UserRole(int value) {
+            this.value = value;
+        }
+
+    }
+}
