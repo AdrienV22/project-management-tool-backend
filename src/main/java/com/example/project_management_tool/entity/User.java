@@ -30,7 +30,7 @@ public class User {
     private String password;
 
     @NotNull
-    @Enumerated(EnumType.ORDINAL)  // Utilise EnumType.ORDINAL pour enregistrer l'énumération sous forme d'entier
+    @Convert  // Annotation placée ici pour convertir userRole
     private UserRole userRole;
 
     @ManyToMany
