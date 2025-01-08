@@ -1,5 +1,6 @@
 package com.example.project_management_tool.entity;
 
+import com.example.project_management_tool.converter.UserRoleConverter;
 import com.example.project_management_tool.model.ProjectModel;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
@@ -30,7 +31,7 @@ public class User {
     private String password;
 
     @NotNull
-    @Convert  // Annotation placée ici pour convertir userRole
+    @Enumerated(EnumType.ORDINAL)  // Utilise l'index ordinal de l'énumération
     private UserRole userRole;
 
     @ManyToMany
@@ -51,12 +52,12 @@ public class User {
 
     @Getter
     public enum UserRole {
+        // user_role = 0
+        ADMIN(0),
         // user_role = 1
-        ADMIN(1),
+        MEMBRE(1),
         // user_role = 2
-        MEMBRE(2),
-        // user_role = 3
-        OBSERVATEUR(3);
+        OBSERVATEUR(2);
 
         private final int value;
 
