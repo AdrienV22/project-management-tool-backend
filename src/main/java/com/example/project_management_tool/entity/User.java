@@ -2,11 +2,14 @@ package com.example.project_management_tool.entity;
 
 import com.example.project_management_tool.converter.UserRoleConverter;
 import com.example.project_management_tool.model.ProjectModel;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
+
 import java.util.*;
 
 @Getter
@@ -15,10 +18,10 @@ import java.util.*;
 @Table(name="users")
 public class User {
 
-    // Getters et setters pour chaque propriété
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;  // identifiant unique pour chaque utilisateur
+
     @NotNull
     @Size(min = 3, max = 50)
     private String username;
@@ -31,7 +34,7 @@ public class User {
     private String password;
 
     @NotNull
-    @Enumerated(EnumType.ORDINAL)  // Utilise l'index ordinal de l'énumération
+    @Enumerated(EnumType.STRING)  // Utilise l'énumération sous forme de chaîne ("ADMIN", "MEMBRE", etc.)
     private UserRole userRole;
 
     @ManyToMany
@@ -43,6 +46,7 @@ public class User {
     // Constructeur par défaut
     public User() {}
 
+    // Constructeur avec paramètres
     public User(String username, String email, String password, UserRole role) {
         this.username = username;
         this.email = email;
@@ -50,13 +54,11 @@ public class User {
         this.userRole = role;
     }
 
+    // Enum UserRole pour les rôles des utilisateurs
     @Getter
     public enum UserRole {
-        // user_role = 0
         ADMIN(0),
-        // user_role = 1
         MEMBRE(1),
-        // user_role = 2
         OBSERVATEUR(2);
 
         private final int value;
@@ -65,5 +67,21 @@ public class User {
             this.value = value;
         }
 
+        // Méthode pour convertir la valeur (int) en UserRole
+        @JsonCreator
+        public static UserRole fromValue(int value) {
+            for (UserRole role : UserRole.values()) {
+                if (role.getValue() == value) {
+                    return role;
+                }
+            }
+            throw new IllegalArgumentException("Unknown role: " + value);
+        }
+
+        // Méthode pour obtenir le nom du rôle en tant que String (par exemple "ADMIN", "MEMBRE")
+        @Override
+        public String toString() {
+            return this.name();
+        }
     }
 }
