@@ -1,9 +1,8 @@
 package com.example.project_management_tool.entity;
 
-import com.example.project_management_tool.converter.UserRoleConverter;
 import com.example.project_management_tool.model.ProjectModel;
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonValue;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -34,7 +33,7 @@ public class User {
     private String password;
 
     @NotNull
-    @Enumerated(EnumType.STRING)  // Utilise l'énumération sous forme de chaîne ("ADMIN", "MEMBRE", etc.)
+    @Enumerated(EnumType.ORDINAL)  // Utilisation de l'ordinal (int) pour le rôle (0 = ADMIN, 1 = MEMBRE, etc.)
     private UserRole userRole;
 
     @ManyToMany
@@ -67,21 +66,19 @@ public class User {
             this.value = value;
         }
 
-        // Méthode pour convertir la valeur (int) en UserRole
-        @JsonCreator
-        public static UserRole fromValue(int value) {
+        @JsonValue  // Utilise l'ordinal pour la sérialisation (envoi des entiers)
+        public int getValue() {
+            return value;
+        }
+
+        @JsonCreator  // Permet à Jackson de désérialiser l'ordinal lors de la réception des données
+        public static UserRole forValue(int value) {
             for (UserRole role : UserRole.values()) {
                 if (role.getValue() == value) {
                     return role;
                 }
             }
-            throw new IllegalArgumentException("Unknown role: " + value);
-        }
-
-        // Méthode pour obtenir le nom du rôle en tant que String (par exemple "ADMIN", "MEMBRE")
-        @Override
-        public String toString() {
-            return this.name();
+            throw new IllegalArgumentException("Rôle non valide");
         }
     }
 }

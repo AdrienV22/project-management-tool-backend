@@ -2,6 +2,7 @@ package com.example.project_management_tool.controller;
 
 import com.example.project_management_tool.entity.User;
 import com.example.project_management_tool.model.TaskModel;
+import com.example.project_management_tool.service.AuthService;  // Importation de AuthService
 import com.example.project_management_tool.repository.UserRepository;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,12 +19,14 @@ public class UserController {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private AuthService authService;  // Injection d'AuthService pour l'inscription
 
-
-    @PostMapping
-    public User createUser(@RequestBody User user) {
-        System.out.println("Données reçues dans createUser : " + user);
-        return userRepository.save(user);
+    // Endpoint pour créer un utilisateur (inscription)
+    @PostMapping("/register")
+    public ResponseEntity<?> registerUser(@RequestBody User user) {
+        // Utilisation du service AuthService pour gérer l'inscription
+        return authService.register(user.getUsername(), user.getEmail(), user.getPassword(), user.getUserRole());
     }
 
     @GetMapping
@@ -60,5 +63,4 @@ public class UserController {
 
         return userRepository.save(target);
     }
-
 }
