@@ -17,11 +17,15 @@ public class AuthController {
     private AuthService authService;
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody Map<String, String> user) {
-        String username = user.get("username");
-        String email = user.get("email");
-        String password = user.get("password");
-        User.UserRole role = User.UserRole.valueOf(user.get("UserRole"));
+    public ResponseEntity<?> register(@RequestBody Map<String, Object> user) {
+        String username = (String) user.get("username");
+        String email = (String) user.get("email");
+        String password = (String) user.get("password");
+
+        // Conversion du rôle en UserRole à partir de l'entier
+        Integer roleInt = (Integer) user.get("userRole");
+        User.UserRole role = User.UserRole.forValue(roleInt); // Utilisation de la méthode pourValue pour convertir l'entier en UserRole
+
         return authService.register(username, email, password, role);
     }
 
