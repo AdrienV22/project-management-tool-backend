@@ -11,9 +11,9 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.util.List;
 
-@CrossOrigin(origins = "http://localhost:4200")  // Permet au frontend de se connecter depuis ce port
+@CrossOrigin(origins = "http://localhost:4200", allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE})
 @RestController
-@RequestMapping("/projects")
+@RequestMapping("/api/projects")
 public class ProjectController {
 
     @Autowired
@@ -24,12 +24,14 @@ public class ProjectController {
     }
 
     // Endpoint pour récupérer tous les projets
+    @CrossOrigin(origins = "http://localhost:4200")  // Appliquer CORS ici aussi si nécessaire
     @GetMapping
     public List<ProjectModel> getAllProjects() {
         return projectRepository.findAll();
     }
 
     // Initialisation du projet
+    @CrossOrigin(origins = "http://localhost:4200")  // Appliquer CORS ici aussi si nécessaire
     @PostMapping("/initialize")
     public ProjectModel InitiateProject(String name, String description, LocalDate startDate, User user) {
         ProjectModel project = new ProjectModel(name, description, startDate);
@@ -40,11 +42,11 @@ public class ProjectController {
         return createProject(project);
     }
 
-    // Add user
+    // Ajouter un utilisateur au projet
+    @CrossOrigin(origins = "http://localhost:4200")  // Appliquer CORS ici aussi si nécessaire
     public ProjectModel addUser(User user, ProjectModel project, User.UserRole role, String mail) {
-        if (!(user.getUserRole().equals(User.UserRole.ADMIN) ||user.getUserRole().equals(User.UserRole.MEMBRE)
-                && project.getAdminId().contains(user.getId())))
-        {
+        if (!(user.getUserRole().equals(User.UserRole.ADMIN) || user.getUserRole().equals(User.UserRole.MEMBRE)
+                && project.getAdminId().contains(user.getId()))) {
             return null;
         }
         UserController userController = new UserController();
@@ -56,9 +58,10 @@ public class ProjectController {
         return projectRepository.save(project);
     }
 
+    // Définir un rôle pour un utilisateur dans le projet
+    @CrossOrigin(origins = "http://localhost:4200")  // Appliquer CORS ici aussi si nécessaire
     public ProjectModel SetRole(User user, ProjectModel project, User.UserRole role, User target) {
-        if (!(user.getUserRole().equals(User.UserRole.ADMIN) && project.getAdminId().contains(user.getId())))
-        {
+        if (!(user.getUserRole().equals(User.UserRole.ADMIN) && project.getAdminId().contains(user.getId()))) {
             return null;
         }
         project.getUserList().stream().filter(u -> u.getId().equals(target.getId())).findFirst().get().setUserRole(role);
@@ -66,25 +69,27 @@ public class ProjectController {
     }
 
     // Endpoint pour créer un projet
+    @CrossOrigin(origins = "http://localhost:4200")  // Appliquer CORS ici aussi si nécessaire
     @PostMapping
     public ProjectModel createProject(@RequestBody ProjectModel project) {
         return projectRepository.save(project);
     }
 
-
     // Endpoint pour récupérer le projet en fonction de l'ID
+    @CrossOrigin(origins = "http://localhost:4200")  // Appliquer CORS ici aussi si nécessaire
     @GetMapping("/{id}")
     public ProjectModel getProjectById(@PathVariable Long id) {
         return projectRepository.findById(id).orElse(null);
     }
 
-
+    // Ajouter une tâche au projet
+    @CrossOrigin(origins = "http://localhost:4200")  // Appliquer CORS ici aussi si nécessaire
     public ProjectModel addTask(TaskModel task, ProjectModel project) {
         project.getTaskList().add(task);
         return projectRepository.save(project);
     }
 
-
+    // Gérer les exceptions
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleException(Exception e) {
         return ResponseEntity.internalServerError().body("Une erreur est survenue: " + e.getMessage());
