@@ -9,10 +9,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
-@CrossOrigin(origins = "http://localhost:4200", allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE})
+@CrossOrigin(origins = "http://localhost:4200", allowedHeaders = "*")
 @RestController
 @RequestMapping("/api/projects")
 public class ProjectController {
@@ -33,28 +35,40 @@ public class ProjectController {
 
         // Ajouter le client (nom du chef de projet) pour chaque projet
         projects.forEach(project -> {
-            if (!project.getAdminId().isEmpty()) {
-                Long adminId = project.getAdminId().get(0);
-                userRepository.findById(adminId).ifPresent(user -> project.setClient(user.getUsername()));
+            if (project.getClientEmail() != null) {
+                // Récupérer l'utilisateur (chef de projet) via l'email
+                Optional<User> clientOptional = userRepository.findByEmail(project.getClientEmail());
+                if (clientOptional.isPresent()) {
+                    User client = clientOptional.get(); // Extraire l'utilisateur de l'Optional
+                    project.setClientEmail(client.getEmail()); // Assigner l'email du chef de projet
+                }
             }
         });
 
         return projects;
     }
 
-    // Initialisation d'un nouveau projet
+    // Initialiser un projet en récupérant le client par email
     @PostMapping("/initialize")
     public ResponseEntity<ProjectModel> initiateProject(@RequestParam String name,
                                                         @RequestParam String description,
                                                         @RequestParam LocalDate startDate,
-                                                        @RequestBody User user) {
+                                                        @RequestParam String clientEmail) {
+        // Récupérer le client (chef de projet) par email
+        Optional<User> clientOptional = userRepository.findByEmail(clientEmail);
+        if (clientOptional.isEmpty()) {
+            return ResponseEntity.badRequest().body(null);  // Si le client n'est pas trouvé
+        }
+
+        User client = clientOptional.get(); // Extraire l'utilisateur de l'Optional
+
         ProjectModel project = new ProjectModel(name, description, startDate);
-        project.getAdminId().add(user.getId());
+        project.setClientEmail(client.getEmail());  // Assigner l'email du chef de projet
         ProjectModel createdProject = projectRepository.save(project);
         return ResponseEntity.ok(createdProject);
     }
 
-    // Ajouter un utilisateur au projet
+    // Ajouter un utilisateur à un projet
     @PutMapping("/{projectId}/users")
     public ResponseEntity<ProjectModel> addUserToProject(@PathVariable Long projectId,
                                                          @RequestParam String userEmail,
@@ -64,25 +78,40 @@ public class ProjectController {
             return ResponseEntity.notFound().build();
         }
 
-        User user = userRepository.findByEmail(userEmail).orElse(null);
-        if (user == null) {
+        // Récupérer l'utilisateur par son email
+        Optional<User> userOptional = userRepository.findByEmail(userEmail);
+        if (userOptional.isEmpty()) {
             return ResponseEntity.badRequest().body(null);
         }
 
-        user.setUserRole(role);
-        project.getUserList().add(user);
+        User user = userOptional.get();  // L'utilisateur est de type UserEntity
+        user.setUserRole(role); // Mettre à jour le rôle de l'utilisateur
+        project.getUserList().add(user); // Ajouter l'utilisateur à la liste des utilisateurs du projet
+
         ProjectModel updatedProject = projectRepository.save(project);
         return ResponseEntity.ok(updatedProject);
     }
 
-    // Endpoint pour créer un projet
+
+    // Créer un projet
     @PostMapping
     public ResponseEntity<ProjectModel> createProject(@RequestBody ProjectModel project) {
+        // Récupérer et associer le client (chef de projet) par email
+        if (project.getClientEmail() != null) {
+            Optional<User> clientOptional = userRepository.findByEmail(project.getClientEmail());
+            if (clientOptional.isEmpty()) {
+                return ResponseEntity.badRequest().body(null);  // Si le client n'est pas trouvé
+            }
+
+            User client = clientOptional.get();  // Extraire l'utilisateur de l'Optional
+            project.setClientEmail(client.getEmail());  // Assigner l'email du chef de projet
+        }
+
         ProjectModel createdProject = projectRepository.save(project);
         return ResponseEntity.ok(createdProject);
     }
 
-    // Endpoint pour supprimer un projet
+    // Supprimer un projet
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteProject(@PathVariable Long id) {
         if (projectRepository.existsById(id)) {
@@ -92,7 +121,7 @@ public class ProjectController {
         return ResponseEntity.notFound().build();
     }
 
-    // Endpoint pour récupérer un projet par ID
+    // Récupérer un projet par ID
     @GetMapping("/{id}")
     public ResponseEntity<ProjectModel> getProjectById(@PathVariable Long id) {
         return projectRepository.findById(id)
@@ -113,7 +142,7 @@ public class ProjectController {
         return ResponseEntity.ok(updatedProject);
     }
 
-    // Endpoint pour mettre à jour un projet
+    // Mettre à jour un projet
     @PutMapping("/{id}")
     public ResponseEntity<ProjectModel> updateProject(@PathVariable Long id, @RequestBody ProjectModel updatedProject) {
         return projectRepository.findById(id)
@@ -122,6 +151,8 @@ public class ProjectController {
                     existingProject.setDescription(updatedProject.getDescription());
                     existingProject.setStartDate(updatedProject.getStartDate());
                     existingProject.setStatut(updatedProject.getStatut());
+                    existingProject.setEndDate(updatedProject.getEndDate()); // Mise à jour de la date de fin
+                    existingProject.setClientEmail(updatedProject.getClientEmail()); // Mise à jour de l'email du chef de projet
                     ProjectModel savedProject = projectRepository.save(existingProject);
                     return ResponseEntity.ok(savedProject);
                 })
