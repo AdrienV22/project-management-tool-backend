@@ -9,9 +9,10 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
-@Entity(name = "ProjectModel")
+@Entity
 @Data
 public class ProjectModel {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -24,33 +25,33 @@ public class ProjectModel {
     private String description;
 
     @ElementCollection
-    private List<Long> adminId;
+    private List<Long> adminId = new ArrayList<>();
 
     @NotNull(message = "Start date cannot be null")
     private LocalDate startDate;
 
     @ManyToMany
-    private List<User> userList;
+    private List<User> userList = new ArrayList<>();
 
     @OneToMany
-    private List<TaskModel> taskList;
+    private List<TaskModel> taskList = new ArrayList<>();
 
-    @Transient  // Ce champ ne sera pas mappé à la base de données, il sera uniquement utilisé pour l'API
+    @Transient
     private String client;
 
-    // Constructeur par défaut
-    public ProjectModel() {
-        this.adminId = new ArrayList<>();
-        this.userList = new ArrayList<>();
-        this.taskList = new ArrayList<>();
-    }
+    @Transient
+    private String statut = "Non défini";
 
-    // Constructeur avec arguments
-    public ProjectModel(String name, String description, LocalDate startDate) {
-        this();
+    public ProjectModel() {}
+
+    public ProjectModel(String name, String description, LocalDate startDate, String statut) {
         this.name = name;
         this.description = description;
         this.startDate = startDate;
+        this.statut = statut;
+    }
+
+    public ProjectModel(String name, String description, LocalDate startDate) {
+        this(name, description, startDate, "Non défini");
     }
 }
-
