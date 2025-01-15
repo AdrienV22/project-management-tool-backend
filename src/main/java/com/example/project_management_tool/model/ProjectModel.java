@@ -48,6 +48,7 @@ public class ProjectModel {
     // Nouveau champ pour le statut
     private String statut = "Non défini"; // Valeur par défaut
 
+
     // Constructeur par défaut
     public ProjectModel() {}
 

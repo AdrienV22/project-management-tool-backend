@@ -147,17 +147,44 @@ public class ProjectController {
     public ResponseEntity<ProjectModel> updateProject(@PathVariable Long id, @RequestBody ProjectModel updatedProject) {
         return projectRepository.findById(id)
                 .map(existingProject -> {
-                    existingProject.setName(updatedProject.getName());
-                    existingProject.setDescription(updatedProject.getDescription());
-                    existingProject.setStartDate(updatedProject.getStartDate());
-                    existingProject.setStatut(updatedProject.getStatut());
-                    existingProject.setEndDate(updatedProject.getEndDate()); // Mise à jour de la date de fin
-                    existingProject.setClientEmail(updatedProject.getClientEmail()); // Mise à jour de l'email du chef de projet
-                    ProjectModel savedProject = projectRepository.save(existingProject);
-                    return ResponseEntity.ok(savedProject);
+                    boolean isUpdated = false;
+
+                    if (updatedProject.getName() != null && !updatedProject.getName().equals(existingProject.getName())) {
+                        existingProject.setName(updatedProject.getName());
+                        isUpdated = true;
+                    }
+                    if (updatedProject.getDescription() != null && !updatedProject.getDescription().equals(existingProject.getDescription())) {
+                        existingProject.setDescription(updatedProject.getDescription());
+                        isUpdated = true;
+                    }
+                    if (updatedProject.getStartDate() != null && !updatedProject.getStartDate().equals(existingProject.getStartDate())) {
+                        existingProject.setStartDate(updatedProject.getStartDate());
+                        isUpdated = true;
+                    }
+                    if (updatedProject.getStatut() != null && !updatedProject.getStatut().equals(existingProject.getStatut())) {
+                        existingProject.setStatut(updatedProject.getStatut());
+                        isUpdated = true;
+                    }
+                    if (updatedProject.getEndDate() != null && !updatedProject.getEndDate().equals(existingProject.getEndDate())) {
+                        existingProject.setEndDate(updatedProject.getEndDate());
+                        isUpdated = true;
+                    }
+                    if (updatedProject.getClientEmail() != null && !updatedProject.getClientEmail().equals(existingProject.getClientEmail())) {
+                        existingProject.setClientEmail(updatedProject.getClientEmail());
+                        isUpdated = true;
+                    }
+
+                    if (isUpdated) {
+                        ProjectModel savedProject = projectRepository.save(existingProject);
+                        return ResponseEntity.ok(savedProject);
+                    } else {
+                        // Si rien n'a été mis à jour, retourner un code HTTP 304 (Not Modified)
+                        return ResponseEntity.status(304).body(existingProject);
+                    }
                 })
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
+
 
     // Gérer les exceptions
     @ExceptionHandler(Exception.class)
