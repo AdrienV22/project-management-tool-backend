@@ -75,6 +75,19 @@ public class ProjectController {
         return projectRepository.save(project);
     }
 
+    // Endpoint pour supprimer un projet
+    @CrossOrigin(origins = "http://localhost:4200", allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE})
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteProject(@PathVariable Long id) {
+        if (projectRepository.existsById(id)) {
+            projectRepository.deleteById(id);
+            return ResponseEntity.noContent().build(); // HTTP 204 pour indiquer une suppression réussie
+        } else {
+            return ResponseEntity.notFound().build(); // HTTP 404 si le projet n'existe pas
+        }
+    }
+
+
     // Endpoint pour récupérer le projet en fonction de l'ID
     @CrossOrigin(origins = "http://localhost:4200")  // Appliquer CORS ici aussi si nécessaire
     @GetMapping("/{id}")
