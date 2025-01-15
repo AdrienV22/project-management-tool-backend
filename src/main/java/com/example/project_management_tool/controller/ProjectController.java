@@ -4,6 +4,7 @@ import com.example.project_management_tool.entity.User;
 import com.example.project_management_tool.model.ProjectModel;
 import com.example.project_management_tool.model.TaskModel;
 import com.example.project_management_tool.repository.ProjectRepository;
+import com.example.project_management_tool.repository.UserRepository; // Assurez-vous d'avoir ce repository pour accéder aux utilisateurs
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,19 +20,36 @@ public class ProjectController {
     @Autowired
     private final ProjectRepository projectRepository;
 
-    public ProjectController(ProjectRepository projectRepository) {
+    @Autowired
+    private final UserRepository userRepository;  // Ajout du UserRepository pour accéder aux utilisateurs
+
+    public ProjectController(ProjectRepository projectRepository, UserRepository userRepository) {
         this.projectRepository = projectRepository;
+        this.userRepository = userRepository;
     }
 
-    // Endpoint pour récupérer tous les projets
-    @CrossOrigin(origins = "http://localhost:4200")  // Appliquer CORS ici aussi si nécessaire
+    // Endpoint pour récupérer tous les projets avec le nom du chef de projet (client)
+    @CrossOrigin(origins = "http://localhost:4200")
     @GetMapping
     public List<ProjectModel> getAllProjects() {
-        return projectRepository.findAll();
+        List<ProjectModel> projects = projectRepository.findAll();
+
+        // Récupérer et ajouter le client (chef de projet) à chaque projet
+        for (ProjectModel project : projects) {
+            if (!project.getAdminId().isEmpty()) {
+                Long adminId = project.getAdminId().get(0);  // Supposons que le premier ID est le chef de projet
+                User user = userRepository.findById(adminId).orElse(null);
+                if (user != null) {
+                    project.setClient(user.getUsername());
+                }
+            }
+        }
+
+        return projects;
     }
 
     // Initialisation du projet
-    @CrossOrigin(origins = "http://localhost:4200")  // Appliquer CORS ici aussi si nécessaire
+    @CrossOrigin(origins = "http://localhost:4200")
     @PostMapping("/initialize")
     public ProjectModel InitiateProject(String name, String description, LocalDate startDate, User user) {
         ProjectModel project = new ProjectModel(name, description, startDate);
@@ -43,7 +61,7 @@ public class ProjectController {
     }
 
     // Ajouter un utilisateur au projet
-    @CrossOrigin(origins = "http://localhost:4200")  // Appliquer CORS ici aussi si nécessaire
+    @CrossOrigin(origins = "http://localhost:4200")
     public ProjectModel addUser(User user, ProjectModel project, User.UserRole role, String mail) {
         if (!(user.getUserRole().equals(User.UserRole.ADMIN) || user.getUserRole().equals(User.UserRole.MEMBRE)
                 && project.getAdminId().contains(user.getId()))) {
@@ -59,7 +77,7 @@ public class ProjectController {
     }
 
     // Définir un rôle pour un utilisateur dans le projet
-    @CrossOrigin(origins = "http://localhost:4200")  // Appliquer CORS ici aussi si nécessaire
+    @CrossOrigin(origins = "http://localhost:4200")
     public ProjectModel SetRole(User user, ProjectModel project, User.UserRole role, User target) {
         if (!(user.getUserRole().equals(User.UserRole.ADMIN) && project.getAdminId().contains(user.getId()))) {
             return null;
@@ -69,7 +87,7 @@ public class ProjectController {
     }
 
     // Endpoint pour créer un projet
-    @CrossOrigin(origins = "http://localhost:4200")  // Appliquer CORS ici aussi si nécessaire
+    @CrossOrigin(origins = "http://localhost:4200")
     @PostMapping
     public ProjectModel createProject(@RequestBody ProjectModel project) {
         return projectRepository.save(project);
@@ -87,16 +105,15 @@ public class ProjectController {
         }
     }
 
-
     // Endpoint pour récupérer le projet en fonction de l'ID
-    @CrossOrigin(origins = "http://localhost:4200")  // Appliquer CORS ici aussi si nécessaire
+    @CrossOrigin(origins = "http://localhost:4200")
     @GetMapping("/{id}")
     public ProjectModel getProjectById(@PathVariable Long id) {
         return projectRepository.findById(id).orElse(null);
     }
 
     // Ajouter une tâche au projet
-    @CrossOrigin(origins = "http://localhost:4200")  // Appliquer CORS ici aussi si nécessaire
+    @CrossOrigin(origins = "http://localhost:4200")
     public ProjectModel addTask(TaskModel task, ProjectModel project) {
         project.getTaskList().add(task);
         return projectRepository.save(project);

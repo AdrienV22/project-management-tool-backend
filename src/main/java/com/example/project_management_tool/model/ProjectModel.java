@@ -35,18 +35,22 @@ public class ProjectModel {
     @OneToMany
     private List<TaskModel> taskList;
 
+    @Transient  // Ce champ ne sera pas mappé à la base de données, il sera uniquement utilisé pour l'API
+    private String client;
+
     // Constructeur par défaut
     public ProjectModel() {
-        this.adminId = new ArrayList<>(); // Initialisation des adminId
-        this.userList = new ArrayList<>(); // Initialisation des userList
-        this.taskList = new ArrayList<>(); // Initialisation des taskList
+        this.adminId = new ArrayList<>();
+        this.userList = new ArrayList<>();
+        this.taskList = new ArrayList<>();
     }
 
     // Constructeur avec arguments
     public ProjectModel(String name, String description, LocalDate startDate) {
-        this(); // Appel au constructeur par défaut pour initialiser les listes
+        this();
         this.name = name;
         this.description = description;
         this.startDate = startDate;
     }
 }
+
