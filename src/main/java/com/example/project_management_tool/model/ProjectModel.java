@@ -59,7 +59,7 @@ public class ProjectModel {
         this.startDate = startDate;
         this.statut = statut;
         this.endDate = endDate;
-        this.clientEmail = clientEmail;  // Affecter l'email
+        this.clientEmail = clientEmail;
     }
 
     // Constructeur sans client et date de fin
