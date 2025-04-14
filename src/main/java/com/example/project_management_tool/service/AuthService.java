@@ -22,41 +22,48 @@ public class AuthService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    // Inscription d'un utilisateur
+    // Inscription
     public ResponseEntity<?> register(String username, String email, String password, User.UserRole userRole) {
-        // Vérification si le nom d'utilisateur existe déjà
         if (userRepository.existsByUsername(username)) {
-            return ResponseEntity.badRequest().body(createResponse("Cet nom d'utilisateur est déjà utilisé", "error"));
+            return ResponseEntity.badRequest().body(createBasicResponse("Ce nom d'utilisateur est déjà utilisé.", "error"));
         }
 
-        // Vérification si l'email existe déjà
         if (userRepository.existsByEmail(email)) {
-            return ResponseEntity.badRequest().body(createResponse("Cet email est déjà utilisé", "error"));
+            return ResponseEntity.badRequest().body(createBasicResponse("Cet email est déjà utilisé.", "error"));
         }
 
-        // Création de l'utilisateur
-        User newUser = new User(username, email, passwordEncoder.encode(password), userRole);
+        String hashedPassword = passwordEncoder.encode(password);
+        User newUser = new User(username, email, hashedPassword, userRole);
         userRepository.save(newUser);
 
-        // Réponse avec message de succès
-        return ResponseEntity.ok(createResponse("Utilisateur inscrit avec succès!", "success"));
+        return ResponseEntity.ok(createBasicResponse("Utilisateur inscrit avec succès !", "success"));
     }
 
-    // Connexion d'un utilisateur
+    // Connexion
     public ResponseEntity<?> login(String email, String password) {
         User user = userRepository.findByEmail(email).orElse(null);
 
-        // Vérification des identifiants
-        if (user == null || !passwordEncoder.matches(password, user.getPassword())) {
-            return ResponseEntity.badRequest().body(createResponse("Email ou mot de passe incorrect!", "error"));
+        if (user == null) {
+            return ResponseEntity.badRequest().body(createBasicResponse("Utilisateur introuvable.", "error"));
         }
 
-        // Réponse avec message de succès
-        return ResponseEntity.ok(createResponse("Utilisateur connecté avec succès!", "success"));
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            return ResponseEntity.badRequest().body(createBasicResponse("Mot de passe incorrect.", "error"));
+        }
+
+        // ✅ Réponse complète avec ID, username et email
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Connexion réussie !");
+        response.put("status", "success");
+        response.put("userId", user.getId());         // requis par le frontend
+        response.put("username", user.getUsername()); // facultatif mais utile
+        response.put("email", user.getEmail());
+
+        return ResponseEntity.ok(response);
     }
 
-    // Fonction utilitaire pour créer une réponse structurée
-    private Map<String, String> createResponse(String message, String status) {
+    // Pour les messages d'erreur ou simples réponses
+    private Map<String, String> createBasicResponse(String message, String status) {
         Map<String, String> response = new HashMap<>();
         response.put("message", message);
         response.put("status", status);
