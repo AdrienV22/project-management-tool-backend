@@ -34,6 +34,19 @@ public class TaskController {
     @Autowired
     private EmailService emailService;
 
+    // ✅ Constructeur ajouté pour les tests unitaires
+    public TaskController(TaskRepository taskRepository,
+                          TaskHistoryRepository taskHistoryRepository,
+                          ProjectRepository projectRepository,
+                          UserRepository userRepository,
+                          EmailService emailService) {
+        this.taskRepository = taskRepository;
+        this.taskHistoryRepository = taskHistoryRepository;
+        this.projectRepository = projectRepository;
+        this.userRepository = userRepository;
+        this.emailService = emailService;
+    }
+
     @GetMapping
     public List<TaskModel> getAllTasks() {
         return taskRepository.findAll();
@@ -82,7 +95,6 @@ public class TaskController {
         taskRepository.deleteById(taskId);
     }
 
-    // Méthodes supplémentaires existantes
     public TaskModel addUser(Long userId, TaskModel task, User.UserRole role, User target) {
         User user = userRepository.findById(userId).orElse(null);
         if (user == null || task == null) return null;
