@@ -1,5 +1,6 @@
 package com.example.project_management_tool.controller;
 
+import com.example.project_management_tool.entity.User;
 import com.example.project_management_tool.model.ProjectModel;
 import com.example.project_management_tool.model.TaskModel;
 import com.example.project_management_tool.repository.ProjectRepository;
@@ -7,7 +8,6 @@ import com.example.project_management_tool.repository.TaskHistoryRepository;
 import com.example.project_management_tool.repository.TaskRepository;
 import com.example.project_management_tool.repository.UserRepository;
 import com.example.project_management_tool.service.EmailService;
-import com.example.project_management_tool.entity.User;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -39,6 +39,36 @@ public class TaskController {
     @GetMapping
     public List<TaskModel> getAllTasks() {
         return taskRepository.findAll();
+    }
+
+    @GetMapping("/{id}")
+    public TaskModel getTaskById(@PathVariable Long id) {
+        return taskRepository.findById(id).orElse(null);
+    }
+
+    @PostMapping
+    public TaskModel createTask(@RequestParam Long userId, @RequestBody TaskModel task) {
+        User user = userRepository.findById(userId).orElse(null);
+
+        if (user == null || task.getParentProject() == null || task.getParentProject().getId() == null) {
+            return null;
+        }
+
+        ProjectModel managedProject = projectRepository.findById(task.getParentProject().getId()).orElse(null);
+        if (managedProject == null) return null;
+
+        // Définir explicitement le projet récupéré de la base comme parent
+        task.setParentProject(managedProject);
+
+        // Ajouter la tâche dans la liste du projet si l'utilisateur a les droits
+        if ((user.getUserRole() == User.UserRole.ADMIN && managedProject.getAdminId().contains(user.getId()))
+                || (user.getUserRole() == User.UserRole.MEMBRE && managedProject.getUserList().contains(user))) {
+
+            managedProject.getTaskList().add(task);
+            projectRepository.save(managedProject); // Sauvegarde le lien dans la table de jointure
+        }
+
+        return taskRepository.save(task);
     }
 
     @PutMapping("/{taskId}")
@@ -75,28 +105,6 @@ public class TaskController {
         return taskRepository.save(task);
     }
 
-    @GetMapping("/{id}")
-    public TaskModel getTaskById(@PathVariable Long id) {
-        return taskRepository.findById(id).orElse(null);
-    }
-
-    @PostMapping
-    public TaskModel createTask(@RequestParam Long userId, @RequestBody TaskModel task) {
-        User user = userRepository.findById(userId).orElse(null);
-        ProjectModel project = task.getParentProject();
-
-        if (user == null || project == null || project.getId() == null) {
-            return null;
-        }
-
-        if ((user.getUserRole().equals(User.UserRole.ADMIN) && project.getAdminId().contains(user.getId())
-                || (user.getUserRole().equals(User.UserRole.MEMBRE) && project.getUserList().contains(user)))) {
-            project.getTaskList().add(task);
-        }
-
-        return taskRepository.save(task);
-    }
-
     public TaskModel addUser(Long userId, TaskModel task, User.UserRole role, User target) {
         User user = userRepository.findById(userId).orElse(null);
         if (user == null || task == null) return null;
@@ -121,7 +129,7 @@ public class TaskController {
         if (user == null || project == null || project.getId() == null) {
             return null;
         }
-        TaskModel task = new TaskModel(name, description, date, project, status, priority);
+        TaskModel task = new TaskModel(name, description, date, project, status, priority, userId);
         return createTask(userId, task);
     }
 
