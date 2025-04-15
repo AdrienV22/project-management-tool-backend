@@ -8,11 +8,9 @@ import com.example.project_management_tool.repository.TaskHistoryRepository;
 import com.example.project_management_tool.repository.TaskRepository;
 import com.example.project_management_tool.repository.UserRepository;
 import com.example.project_management_tool.service.EmailService;
-import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -49,62 +47,42 @@ public class TaskController {
     @PostMapping
     public TaskModel createTask(@RequestParam Long userId, @RequestBody TaskModel task) {
         User user = userRepository.findById(userId).orElse(null);
-
-        if (user == null || task.getParentProject() == null || task.getParentProject().getId() == null) {
-            return null;
-        }
+        if (user == null || task.getParentProject() == null || task.getParentProject().getId() == null) return null;
 
         ProjectModel managedProject = projectRepository.findById(task.getParentProject().getId()).orElse(null);
         if (managedProject == null) return null;
 
-        // Définir explicitement le projet récupéré de la base comme parent
         task.setParentProject(managedProject);
 
-        // Ajouter la tâche dans la liste du projet si l'utilisateur a les droits
         if ((user.getUserRole() == User.UserRole.ADMIN && managedProject.getAdminId().contains(user.getId()))
                 || (user.getUserRole() == User.UserRole.MEMBRE && managedProject.getUserList().contains(user))) {
-
             managedProject.getTaskList().add(task);
-            projectRepository.save(managedProject); // Sauvegarde le lien dans la table de jointure
+            projectRepository.save(managedProject);
         }
 
         return taskRepository.save(task);
     }
 
     @PutMapping("/{taskId}")
-    public TaskModel updateTask(@RequestParam Long userId, @PathVariable Long taskId,
-                                @RequestParam(required = false) String title,
-                                @RequestParam(required = false) String description,
-                                @RequestParam(required = false) LocalDate date,
-                                @RequestParam(required = false) String status,
-                                @RequestParam(required = false) TaskModel.Priority priority) {
+    public TaskModel updateTask(@PathVariable Long taskId, @RequestBody TaskModel updatedTask) {
+        TaskModel existingTask = taskRepository.findById(taskId).orElse(null);
+        if (existingTask == null) return null;
 
-        TaskModel task = taskRepository.findById(taskId).orElse(null);
-        User user = userRepository.findById(userId).orElse(null);
+        existingTask.setTitle(updatedTask.getTitle());
+        existingTask.setDescription(updatedTask.getDescription());
+        existingTask.setDueDate(updatedTask.getDueDate());
+        existingTask.setStatus(updatedTask.getStatus());
+        existingTask.setPriority(updatedTask.getPriority());
 
-        if (task == null || user == null) {
-            return null;
-        }
-
-        if (title != null && !title.isBlank()) {
-            task.setTitle(title);
-        }
-        if (description != null && !description.isBlank()) {
-            task.setDescription(description);
-        }
-        if (date != null && date.isAfter(LocalDate.now())){
-            task.setDueDate(date);
-        }
-        if (status != null && !status.isBlank()) {
-            task.setStatus(status);
-        }
-        if (priority != null) {
-            task.setPriority(priority);
-        }
-
-        return taskRepository.save(task);
+        return taskRepository.save(existingTask);
     }
 
+    @DeleteMapping("/{taskId}")
+    public void deleteTask(@PathVariable Long taskId) {
+        taskRepository.deleteById(taskId);
+    }
+
+    // Méthodes supplémentaires existantes
     public TaskModel addUser(Long userId, TaskModel task, User.UserRole role, User target) {
         User user = userRepository.findById(userId).orElse(null);
         if (user == null || task == null) return null;
@@ -123,7 +101,7 @@ public class TaskController {
         return taskRepository.save(task);
     }
 
-    public TaskModel initiateTask(String name, String description, LocalDate date, String status,
+    public TaskModel initiateTask(String name, String description, java.time.LocalDate date, String status,
                                   TaskModel.Priority priority, Long userId, ProjectModel project) {
         User user = userRepository.findById(userId).orElse(null);
         if (user == null || project == null || project.getId() == null) {
