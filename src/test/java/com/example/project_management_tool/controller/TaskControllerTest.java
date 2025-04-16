@@ -54,7 +54,7 @@ public class TaskControllerTest {
 
         TaskModel task = new TaskModel("Tâche test", "Description", LocalDate.now().plusDays(5),
                 project, "En attente", TaskModel.Priority.MOYENNE, userId);
-        task.setParentProject(project);
+        task.setProject(project);
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(projectRepository.findById(projectId)).thenReturn(Optional.of(project));

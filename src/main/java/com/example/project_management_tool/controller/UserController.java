@@ -53,12 +53,12 @@ public class UserController {
     ) {
         User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
 
-        if (!task.getParentProject().getUserList().contains(user) || user.getUserRole().equals(User.UserRole.OBSERVATEUR)) {
+        if (!task.getProject().getUserList().contains(user) || user.getUserRole().equals(User.UserRole.OBSERVATEUR)) {
             throw new RuntimeException("L'utilisateur n'est pas autorisé à ajouter cette tâche");
         }
 
         User target = userRepository.findById(task.getTargetUserId()).orElseThrow(() -> new RuntimeException("Target user not found"));
-        target.getProjectList().add(task.getParentProject());
+        target.getProjectList().add(task.getProject());
         target.getTasks().add(task.getId());
 
         return userRepository.save(target);

@@ -60,12 +60,12 @@ public class TaskController {
     @PostMapping
     public TaskModel createTask(@RequestParam Long userId, @RequestBody TaskModel task) {
         User user = userRepository.findById(userId).orElse(null);
-        if (user == null || task.getParentProject() == null || task.getParentProject().getId() == null) return null;
+        if (user == null || task.getProject() == null || task.getProject().getId() == null) return null;
 
-        ProjectModel managedProject = projectRepository.findById(task.getParentProject().getId()).orElse(null);
+        ProjectModel managedProject = projectRepository.findById(task.getProject().getId()).orElse(null);
         if (managedProject == null) return null;
 
-        task.setParentProject(managedProject);
+        task.setProject(managedProject);
 
         if ((user.getUserRole() == User.UserRole.ADMIN && managedProject.getAdminId().contains(user.getId()))
                 || (user.getUserRole() == User.UserRole.MEMBRE && managedProject.getUserList().contains(user))) {
@@ -101,11 +101,11 @@ public class TaskController {
 
         if (!(user.getUserRole().equals(User.UserRole.ADMIN) ||
                 user.getUserRole().equals(User.UserRole.MEMBRE) &&
-                        task.getParentProject().getAdminId().contains(user.getId()))) {
+                        task.getProject().getAdminId().contains(user.getId()))) {
             return null;
         }
 
-        task.getParentProject().getUserList().add(target);
+        task.getProject().getUserList().add(target);
 
         if (!emailService.testMailSender()) return null;
 
@@ -125,7 +125,7 @@ public class TaskController {
 
     public TaskModel visualizeTask(Long userId, TaskModel task) {
         User user = userRepository.findById(userId).orElse(null);
-        if (user == null || task.getParentProject().getId() == null || !user.getProjectList().contains(task.getParentProject()))
+        if (user == null || task.getProject().getId() == null || !user.getProjectList().contains(task.getProject()))
             return null;
         return task;
     }

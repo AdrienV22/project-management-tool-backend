@@ -4,11 +4,12 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
+
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import com.example.project_management_tool.entity.User;
 
+import com.example.project_management_tool.entity.User;
 
 @Entity
 @Table(name = "project_model")
@@ -32,28 +33,23 @@ public class ProjectModel {
     @NotNull(message = "Start date cannot be null")
     private LocalDate startDate;
 
-    // Nouveau champ pour la date de fin
     private LocalDate endDate;
 
     @ManyToMany
     private List<User> userList = new ArrayList<>();
 
-    @OneToMany
+    // ✅ RELATION CORRECTE AVEC TaskModel
+    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TaskModel> taskList = new ArrayList<>();
 
-    // Remplacer le champ User par un email (String)
     @NotNull(message = "Chef de projet (email) ne peut pas être null")
     @Size(max = 255, message = "Email du chef de projet trop long")
-    private String clientEmail;  // Email du chef de projet (anciennement 'client')
+    private String clientEmail;
 
-    // Nouveau champ pour le statut
-    private String statut = "Non défini"; // Valeur par défaut
+    private String statut = "Non défini";
 
-
-    // Constructeur par défaut
     public ProjectModel() {}
 
-    // Constructeur avec statut et date de fin
     public ProjectModel(String name, String description, LocalDate startDate, String statut, LocalDate endDate, String clientEmail) {
         this.name = name;
         this.description = description;
@@ -63,12 +59,10 @@ public class ProjectModel {
         this.clientEmail = clientEmail;
     }
 
-    // Constructeur sans client et date de fin
     public ProjectModel(String name, String description, LocalDate startDate) {
         this(name, description, startDate, "Non défini", null, null);
     }
 
-    // Getter et Setter pour clientEmail
     public String getClientEmail() {
         return clientEmail;
     }

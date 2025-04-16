@@ -11,7 +11,8 @@ import java.time.LocalDate;
 
 @Getter
 @Setter
-@Entity(name = "TaskModel")
+@Entity
+@Table(name = "task_model")
 public class TaskModel {
 
     @Id
@@ -28,8 +29,8 @@ public class TaskModel {
     private LocalDate dueDate;
 
     @ManyToOne
-    @JoinColumn(name = "project_id")
-    private ProjectModel parentProject;
+    @JoinColumn(name = "project_id", nullable = false)
+    private ProjectModel project;
 
     @NotNull
     @Pattern(regexp = "En cours|Terminé|En attente", message = "Le statut doit être : En cours, Terminé ou En attente")
@@ -42,16 +43,14 @@ public class TaskModel {
     @NotNull
     private Long targetUserId;
 
-    public TaskModel() {
+    public TaskModel() {}
 
-    }
-
-    public TaskModel(String title, String description, LocalDate dueDate, ProjectModel parentProject,
+    public TaskModel(String title, String description, LocalDate dueDate, ProjectModel project,
                      String status, Priority priority, Long targetUserId) {
         this.title = title;
         this.description = description;
         this.dueDate = dueDate;
-        this.parentProject = parentProject;
+        this.project = project;
         this.status = status;
         this.priority = priority;
         this.targetUserId = targetUserId;
