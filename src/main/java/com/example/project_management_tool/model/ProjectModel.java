@@ -11,6 +11,7 @@ import com.example.project_management_tool.entity.User;
 
 
 @Entity
+@Table(name = "project_model")
 @Data
 public class ProjectModel {
 
