@@ -4,138 +4,84 @@ import com.example.project_management_tool.entity.User;
 import com.example.project_management_tool.model.ProjectModel;
 import com.example.project_management_tool.model.TaskModel;
 import com.example.project_management_tool.repository.ProjectRepository;
-import com.example.project_management_tool.repository.TaskHistoryRepository;
 import com.example.project_management_tool.repository.TaskRepository;
 import com.example.project_management_tool.repository.UserRepository;
-import com.example.project_management_tool.service.EmailService;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
 @CrossOrigin(origins = "http://localhost:4200")
 @RestController
-@RequestMapping("/tasks")
+@RequestMapping("/api/tasks")
 public class TaskController {
 
-    @Autowired
-    private TaskRepository taskRepository;
+    private final TaskRepository taskRepository;
+    private final ProjectRepository projectRepository;
+    private final UserRepository userRepository;
 
-    @Autowired
-    private TaskHistoryRepository taskHistoryRepository;
-
-    @Autowired
-    private ProjectRepository projectRepository;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private EmailService emailService;
-
-    // ✅ Constructeur ajouté pour les tests unitaires
     public TaskController(TaskRepository taskRepository,
-                          TaskHistoryRepository taskHistoryRepository,
                           ProjectRepository projectRepository,
-                          UserRepository userRepository,
-                          EmailService emailService) {
+                          UserRepository userRepository) {
         this.taskRepository = taskRepository;
-        this.taskHistoryRepository = taskHistoryRepository;
         this.projectRepository = projectRepository;
         this.userRepository = userRepository;
-        this.emailService = emailService;
     }
 
+    // Tous authentifiés
     @GetMapping
+    @PreAuthorize("isAuthenticated()")
     public List<TaskModel> getAllTasks() {
         return taskRepository.findAll();
     }
 
-    @GetMapping("/{id}")
-    public TaskModel getTaskById(@PathVariable Long id) {
-        return taskRepository.findById(id).orElse(null);
-    }
-
+    // Création tâche → ADMIN ou MEMBER
     @PostMapping
-    public TaskModel createTask(@RequestParam Long userId, @RequestBody TaskModel task) {
-        User user = userRepository.findById(userId).orElse(null);
-        if (user == null || task.getProject() == null || task.getProject().getId() == null) return null;
+    @PreAuthorize("hasAnyRole('ADMIN','MEMBER')")
+    public TaskModel createTask(@RequestBody TaskModel task,
+                                Authentication authentication) {
 
-        ProjectModel managedProject = projectRepository.findById(task.getProject().getId()).orElse(null);
+        String email = authentication.getName();
+        Optional<User> userOpt = userRepository.findByEmail(email);
+        if (userOpt.isEmpty()) return null;
+
+        if (task.getProject() == null || task.getProject().getId() == null)
+            return null;
+
+        ProjectModel managedProject = projectRepository
+                .findById(task.getProject().getId())
+                .orElse(null);
+
         if (managedProject == null) return null;
 
         task.setProject(managedProject);
-
-        if ((user.getUserRole() == User.UserRole.ADMIN && managedProject.getAdminId().contains(user.getId()))
-                || (user.getUserRole() == User.UserRole.MEMBRE && managedProject.getUserList().contains(user))) {
-            managedProject.getTaskList().add(task);
-            projectRepository.save(managedProject);
-        }
-
         return taskRepository.save(task);
     }
 
+    // Update → ADMIN ou MEMBER
     @PutMapping("/{taskId}")
-    public TaskModel updateTask(@PathVariable Long taskId, @RequestBody TaskModel updatedTask) {
-        TaskModel existingTask = taskRepository.findById(taskId).orElse(null);
-        if (existingTask == null) return null;
+    @PreAuthorize("hasAnyRole('ADMIN','MEMBER')")
+    public TaskModel updateTask(@PathVariable Long taskId,
+                                @RequestBody TaskModel updatedTask) {
 
-        existingTask.setTitle(updatedTask.getTitle());
-        existingTask.setDescription(updatedTask.getDescription());
-        existingTask.setDueDate(updatedTask.getDueDate());
-        existingTask.setStatus(updatedTask.getStatus());
-        existingTask.setPriority(updatedTask.getPriority());
+        TaskModel existing = taskRepository.findById(taskId).orElse(null);
+        if (existing == null) return null;
 
-        return taskRepository.save(existingTask);
+        existing.setTitle(updatedTask.getTitle());
+        existing.setDescription(updatedTask.getDescription());
+        existing.setDueDate(updatedTask.getDueDate());
+        existing.setStatus(updatedTask.getStatus());
+        existing.setPriority(updatedTask.getPriority());
+
+        return taskRepository.save(existing);
     }
 
+    // Delete → ADMIN uniquement
     @DeleteMapping("/{taskId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public void deleteTask(@PathVariable Long taskId) {
         taskRepository.deleteById(taskId);
-    }
-
-    public TaskModel addUser(Long userId, TaskModel task, User.UserRole role, User target) {
-        User user = userRepository.findById(userId).orElse(null);
-        if (user == null || task == null) return null;
-
-        if (!(user.getUserRole().equals(User.UserRole.ADMIN) ||
-                user.getUserRole().equals(User.UserRole.MEMBRE) &&
-                        task.getProject().getAdminId().contains(user.getId()))) {
-            return null;
-        }
-
-        task.getProject().getUserList().add(target);
-
-        if (!emailService.testMailSender()) return null;
-
-        emailService.sendEmail(target);
-        return taskRepository.save(task);
-    }
-
-    public TaskModel initiateTask(String name, String description, java.time.LocalDate date, String status,
-                                  TaskModel.Priority priority, Long userId, ProjectModel project) {
-        User user = userRepository.findById(userId).orElse(null);
-        if (user == null || project == null || project.getId() == null) {
-            return null;
-        }
-        TaskModel task = new TaskModel(name, description, date, project, status, priority, userId);
-        return createTask(userId, task);
-    }
-
-    public TaskModel visualizeTask(Long userId, TaskModel task) {
-        User user = userRepository.findById(userId).orElse(null);
-        if (user == null || task.getProject().getId() == null || !user.getProjectList().contains(task.getProject()))
-            return null;
-        return task;
-    }
-
-    public List<TaskModel> visualizeTasks(Long userId, ProjectModel project, List<String> statusList) {
-        User user = userRepository.findById(userId).orElse(null);
-        if (user == null || project.getId() == null || !user.getProjectList().contains(project))
-            return null;
-        return project.getTaskList().stream()
-                .filter(task -> statusList.contains(task.getStatus()))
-                .collect(Collectors.toList());
     }
 }

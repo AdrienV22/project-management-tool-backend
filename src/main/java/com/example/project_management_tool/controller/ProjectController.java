@@ -5,10 +5,10 @@ import com.example.project_management_tool.model.ProjectModel;
 import com.example.project_management_tool.model.TaskModel;
 import com.example.project_management_tool.repository.ProjectRepository;
 import com.example.project_management_tool.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-
 
 import java.time.LocalDate;
 import java.util.List;
@@ -22,173 +22,89 @@ public class ProjectController {
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
 
-    @Autowired
     public ProjectController(ProjectRepository projectRepository, UserRepository userRepository) {
         this.projectRepository = projectRepository;
         this.userRepository = userRepository;
     }
 
-    // Endpoint pour récupérer tous les projets avec le nom du chef de projet (client)
+    // Tous les utilisateurs authentifiés
     @GetMapping
+    @PreAuthorize("isAuthenticated()")
     public List<ProjectModel> getAllProjects() {
-        List<ProjectModel> projects = projectRepository.findAll();
-
-        // Ajouter le client (nom du chef de projet) pour chaque projet
-        projects.forEach(project -> {
-            if (project.getClientEmail() != null) {
-                // Récupérer l'utilisateur (chef de projet) via l'email
-                Optional<User> clientOptional = userRepository.findByEmail(project.getClientEmail());
-                if (clientOptional.isPresent()) {
-                    User client = clientOptional.get(); // Extraire l'utilisateur de l'Optional
-                    project.setClientEmail(client.getEmail()); // Assigner l'email du chef de projet
-                }
-            }
-        });
-
-        return projects;
+        return projectRepository.findAll();
     }
 
-    // Initialiser un projet en récupérant le client par email
-    @PostMapping("/initialize")
-    public ResponseEntity<ProjectModel> initiateProject(@RequestParam String name,
-                                                        @RequestParam String description,
-                                                        @RequestParam LocalDate startDate,
-                                                        @RequestParam String clientEmail) {
-        // Récupérer le client (chef de projet) par email
-        Optional<User> clientOptional = userRepository.findByEmail(clientEmail);
-        if (clientOptional.isEmpty()) {
-            return ResponseEntity.badRequest().body(null);  // Si le client n'est pas trouvé
-        }
-
-        User client = clientOptional.get(); // Extraire l'utilisateur de l'Optional
-
-        ProjectModel project = new ProjectModel(name, description, startDate);
-        project.setClientEmail(client.getEmail());  // Assigner l'email du chef de projet
-        ProjectModel createdProject = projectRepository.save(project);
-        return ResponseEntity.ok(createdProject);
-    }
-
-    // Ajouter un utilisateur à un projet
-    @PutMapping("/{projectId}/users")
-    public ResponseEntity<ProjectModel> addUserToProject(@PathVariable Long projectId,
-                                                         @RequestParam String userEmail,
-                                                         @RequestParam User.UserRole role) {
-        ProjectModel project = projectRepository.findById(projectId).orElse(null);
-        if (project == null) {
-            return ResponseEntity.notFound().build();
-        }
-
-        // Récupérer l'utilisateur par son email
-        Optional<User> userOptional = userRepository.findByEmail(userEmail);
-        if (userOptional.isEmpty()) {
-            return ResponseEntity.badRequest().body(null);
-        }
-
-        User user = userOptional.get();  // L'utilisateur est de type UserEntity
-        user.setUserRole(role); // Mettre à jour le rôle de l'utilisateur
-        project.getUserList().add(user); // Ajouter l'utilisateur à la liste des utilisateurs du projet
-
-        ProjectModel updatedProject = projectRepository.save(project);
-        return ResponseEntity.ok(updatedProject);
-    }
-
-
-    // Créer un projet
+    // Création projet → ADMIN ou MEMBER
     @PostMapping
-    public ResponseEntity<ProjectModel> createProject(@RequestBody ProjectModel project) {
-        // Récupérer et associer le client (chef de projet) par email
-        if (project.getClientEmail() != null) {
-            Optional<User> clientOptional = userRepository.findByEmail(project.getClientEmail());
-            if (clientOptional.isEmpty()) {
-                return ResponseEntity.badRequest().body(null);  // Si le client n'est pas trouvé
-            }
+    @PreAuthorize("hasAnyRole('ADMIN','MEMBER')")
+    public ResponseEntity<ProjectModel> createProject(@RequestBody ProjectModel project,
+                                                      Authentication authentication) {
 
-            User client = clientOptional.get();  // Extraire l'utilisateur de l'Optional
-            project.setClientEmail(client.getEmail());  // Assigner l'email du chef de projet
+        String email = authentication.getName();
+        Optional<User> userOpt = userRepository.findByEmail(email);
+
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.badRequest().build();
         }
 
+        project.setClientEmail(email);
         ProjectModel createdProject = projectRepository.save(project);
         return ResponseEntity.ok(createdProject);
     }
 
-    // Supprimer un projet
+    // Supprimer → ADMIN uniquement
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteProject(@PathVariable Long id) {
-        if (projectRepository.existsById(id)) {
-            projectRepository.deleteById(id);
-            return ResponseEntity.noContent().build();
-        }
-        return ResponseEntity.notFound().build();
-    }
-
-    // Récupérer un projet par ID
-    @GetMapping("/{id}")
-    public ResponseEntity<ProjectModel> getProjectById(@PathVariable Long id) {
-        return projectRepository.findById(id)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
-    }
-
-    // Ajouter une tâche à un projet
-    @PutMapping("/{projectId}/tasks")
-    public ResponseEntity<ProjectModel> addTaskToProject(@PathVariable Long projectId, @RequestBody TaskModel task) {
-        ProjectModel project = projectRepository.findById(projectId).orElse(null);
-        if (project == null) {
+        if (!projectRepository.existsById(id)) {
             return ResponseEntity.notFound().build();
         }
 
-        project.getTaskList().add(task);
-        ProjectModel updatedProject = projectRepository.save(project);
-        return ResponseEntity.ok(updatedProject);
+        projectRepository.deleteById(id);
+        return ResponseEntity.noContent().build();
     }
 
-    // Mettre à jour un projet
+    // Update → ADMIN uniquement
     @PutMapping("/{id}")
-    public ResponseEntity<ProjectModel> updateProject(@PathVariable Long id, @RequestBody ProjectModel updatedProject) {
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ProjectModel> updateProject(@PathVariable Long id,
+                                                      @RequestBody ProjectModel updatedProject) {
+
         return projectRepository.findById(id)
-                .map(existingProject -> {
-                    boolean isUpdated = false;
+                .map(existing -> {
+                    existing.setName(updatedProject.getName());
+                    existing.setDescription(updatedProject.getDescription());
+                    existing.setStartDate(updatedProject.getStartDate());
+                    existing.setEndDate(updatedProject.getEndDate());
+                    existing.setStatut(updatedProject.getStatut());
 
-                    if (updatedProject.getName() != null && !updatedProject.getName().equals(existingProject.getName())) {
-                        existingProject.setName(updatedProject.getName());
-                        isUpdated = true;
-                    }
-                    if (updatedProject.getDescription() != null && !updatedProject.getDescription().equals(existingProject.getDescription())) {
-                        existingProject.setDescription(updatedProject.getDescription());
-                        isUpdated = true;
-                    }
-                    if (updatedProject.getStartDate() != null && !updatedProject.getStartDate().equals(existingProject.getStartDate())) {
-                        existingProject.setStartDate(updatedProject.getStartDate());
-                        isUpdated = true;
-                    }
-                    if (updatedProject.getStatut() != null && !updatedProject.getStatut().equals(existingProject.getStatut())) {
-                        existingProject.setStatut(updatedProject.getStatut());
-                        isUpdated = true;
-                    }
-                    if (updatedProject.getEndDate() != null && !updatedProject.getEndDate().equals(existingProject.getEndDate())) {
-                        existingProject.setEndDate(updatedProject.getEndDate());
-                        isUpdated = true;
-                    }
-                    if (updatedProject.getClientEmail() != null && !updatedProject.getClientEmail().equals(existingProject.getClientEmail())) {
-                        existingProject.setClientEmail(updatedProject.getClientEmail());
-                        isUpdated = true;
-                    }
-
-                    if (isUpdated) {
-                        ProjectModel savedProject = projectRepository.save(existingProject);
-                        return ResponseEntity.ok(savedProject);
-                    } else {
-                        // Si rien n'a été mis à jour, retourner un code HTTP 304 (Not Modified)
-                        return ResponseEntity.status(304).body(existingProject);
-                    }
+                    return ResponseEntity.ok(projectRepository.save(existing));
                 })
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    // Ajouter utilisateur → ADMIN uniquement
+    @PutMapping("/{projectId}/users")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ProjectModel> addUserToProject(@PathVariable Long projectId,
+                                                         @RequestParam String userEmail) {
 
-    // Gérer les exceptions
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<String> handleException(Exception e) {
-        return ResponseEntity.internalServerError().body("Une erreur est survenue: " + e.getMessage());
+        ProjectModel project = projectRepository.findById(projectId).orElse(null);
+        if (project == null) return ResponseEntity.notFound().build();
+
+        Optional<User> userOptional = userRepository.findByEmail(userEmail);
+        if (userOptional.isEmpty()) return ResponseEntity.badRequest().build();
+
+        project.getUserList().add(userOptional.get());
+        return ResponseEntity.ok(projectRepository.save(project));
+    }
+
+    // Lecture par ID → connecté
+    @GetMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ProjectModel> getProjectById(@PathVariable Long id) {
+        return projectRepository.findById(id)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 }
