@@ -4,48 +4,66 @@ import com.example.project_management_tool.model.ProjectModel;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Setter
-@Entity(name = "UserEntity")
-@Table(name="users")
+@Entity
+@Table(name = "users")
 public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;  // identifiant unique pour chaque utilisateur
+    private Long id;
 
     @NotNull
     @Size(min = 3, max = 50)
+    @Column(nullable = false, length = 50)
     private String username;
 
     @NotNull
+    @Email
+    @Column(nullable = false, unique = true, length = 255)
     private String email;
 
     @NotNull
     @Size(min = 5)
+    @Column(nullable = false)
     private String password;
 
+    /**
+     * ✅ Stockage en STRING (ADMIN/MEMBRE/OBSERVATEUR)
+     * - robuste (pas dépendant de l'ordre de l'enum)
+     * - compatible H2/Postgres
+     * - évite le problème TINYINT
+     */
     @NotNull
-    @Enumerated(EnumType.ORDINAL)  // Utilisation de l'ordinal (int) pour le rôle (0 = ADMIN, 1 = MEMBRE, etc.)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "user_role", nullable = false, length = 20)
     private UserRole userRole;
 
     @ManyToMany
-    private List<ProjectModel> projectList;
+    @JoinTable(
+            name = "user_projects",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "project_id")
+    )
+    private List<ProjectModel> projectList = new ArrayList<>();
 
     @ElementCollection
-    private List<Long> tasks;
+    @CollectionTable(name = "user_tasks", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "task_id")
+    private List<Long> tasks = new ArrayList<>();
 
-    // Constructeur par défaut
     public User() {}
 
-    // Constructeur avec paramètres
     public User(String username, String email, String password, UserRole role) {
         this.username = username;
         this.email = email;
@@ -53,7 +71,6 @@ public class User {
         this.userRole = role;
     }
 
-    // Enum UserRole pour les rôles des utilisateurs
     @Getter
     public enum UserRole {
         ADMIN(0),
@@ -66,19 +83,19 @@ public class User {
             this.value = value;
         }
 
-        @JsonValue  // Utilise l'ordinal pour la sérialisation (envoi des entiers)
+
+        @JsonValue
         public int getValue() {
             return value;
         }
 
-        @JsonCreator  // Permet à Jackson de désérialiser l'ordinal lors de la réception des données
+
+        @JsonCreator
         public static UserRole forValue(int value) {
             for (UserRole role : UserRole.values()) {
-                if (role.getValue() == value) {
-                    return role;
-                }
+                if (role.value == value) return role;
             }
-            throw new IllegalArgumentException("Rôle non valide");
+            throw new IllegalArgumentException("Rôle non valide: " + value);
         }
     }
 }
