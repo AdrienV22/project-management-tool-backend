@@ -2,15 +2,16 @@ package com.example.project_management_tool.controller;
 
 import com.example.project_management_tool.entity.User;
 import com.example.project_management_tool.model.ProjectModel;
-import com.example.project_management_tool.model.TaskModel;
 import com.example.project_management_tool.repository.ProjectRepository;
 import com.example.project_management_tool.repository.UserRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -27,6 +28,19 @@ public class ProjectController {
         this.userRepository = userRepository;
     }
 
+    /**
+     * Récupère l'email de l'utilisateur authentifié.
+     * Objectif : éviter tout 500 en cas de SecurityContext vide / auth absente.
+     */
+    private String getAuthenticatedEmailOrThrow(Authentication authentication) {
+        if (authentication == null
+                || !authentication.isAuthenticated()
+                || authentication instanceof AnonymousAuthenticationToken) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+        }
+        return authentication.getName();
+    }
+
     // Tous les utilisateurs authentifiés
     @GetMapping
     @PreAuthorize("isAuthenticated()")
@@ -40,16 +54,21 @@ public class ProjectController {
     public ResponseEntity<ProjectModel> createProject(@RequestBody ProjectModel project,
                                                       Authentication authentication) {
 
-        String email = authentication.getName();
-        Optional<User> userOpt = userRepository.findByEmail(email);
+        String email = getAuthenticatedEmailOrThrow(authentication);
 
+        Optional<User> userOpt = userRepository.findByEmail(email);
         if (userOpt.isEmpty()) {
-            return ResponseEntity.badRequest().build();
+            // Plus logique que 400 : on a un token, mais user non reconnu côté système
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found");
         }
 
+        // On associe l'email client au projet (comme dans ton modèle actuel)
         project.setClientEmail(email);
+
         ProjectModel createdProject = projectRepository.save(project);
-        return ResponseEntity.ok(createdProject);
+
+        // 201 Created est plus académique qu'un 200 OK pour une création
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdProject);
     }
 
     // Supprimer → ADMIN uniquement
