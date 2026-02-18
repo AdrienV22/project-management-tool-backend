@@ -1,5 +1,6 @@
 package com.example.project_management_tool.controller;
 
+import com.example.project_management_tool.dto.TaskHistoryResponse;
 import com.example.project_management_tool.entity.TaskHistory;
 import com.example.project_management_tool.repository.TaskHistoryRepository;
 import org.springframework.http.ResponseEntity;
@@ -18,19 +19,27 @@ public class TaskHistoryController {
         this.taskHistoryRepository = taskHistoryRepository;
     }
 
-    /**
-     * US - Suivre l'historique des modifications d'une tâche
-     */
     @GetMapping("/{taskId}/history")
-    public ResponseEntity<List<TaskHistory>> getTaskHistory(@PathVariable Long taskId) {
+    public ResponseEntity<List<TaskHistoryResponse>> getTaskHistory(@PathVariable Long taskId) {
 
-        List<TaskHistory> history =
-                taskHistoryRepository.findByTask_IdOrderByModifiedAtDesc(taskId);
+        List<TaskHistory> history = taskHistoryRepository.findByTask_IdOrderByModifiedAtDesc(taskId);
 
         if (history.isEmpty()) {
             return ResponseEntity.noContent().build();
         }
 
-        return ResponseEntity.ok(history);
+        List<TaskHistoryResponse> response = history.stream()
+                .map(h -> new TaskHistoryResponse(
+                        h.getId(),
+                        h.getTask() != null ? h.getTask().getId() : null,
+                        h.getModifiedBy(),
+                        h.getModifiedAt(),
+                        h.getFieldName(),
+                        h.getOldValue(),
+                        h.getNewValue()
+                ))
+                .toList();
+
+        return ResponseEntity.ok(response);
     }
 }
