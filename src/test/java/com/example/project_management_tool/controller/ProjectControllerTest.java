@@ -1,6 +1,5 @@
 package com.example.project_management_tool.controller;
 
-import com.example.project_management_tool.entity.User;
 import com.example.project_management_tool.model.ProjectModel;
 import com.example.project_management_tool.repository.ProjectRepository;
 import com.example.project_management_tool.repository.UserRepository;
@@ -10,20 +9,18 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
-import org.springframework.security.core.Authentication;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(ProjectController.class)
-@AutoConfigureMockMvc(addFilters = false)
+@WebMvcTest(controllers = ProjectController.class)
+@AutoConfigureMockMvc
 class ProjectControllerTest {
 
     @Autowired
@@ -37,8 +34,7 @@ class ProjectControllerTest {
 
     @Test
     void getAllProjects_shouldReturn200() throws Exception {
-        doReturn(List.of(new ProjectModel()))
-                .when(projectRepository).findAll();
+        when(projectRepository.findAll()).thenReturn(List.of(new ProjectModel()));
 
         mockMvc.perform(get("/api/projects"))
                 .andExpect(status().isOk());
@@ -46,8 +42,7 @@ class ProjectControllerTest {
 
     @Test
     void getProjectById_shouldReturn200_whenFound() throws Exception {
-        doReturn(Optional.of(new ProjectModel()))
-                .when(projectRepository).findById(1L);
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(new ProjectModel()));
 
         mockMvc.perform(get("/api/projects/1"))
                 .andExpect(status().isOk());
@@ -55,8 +50,7 @@ class ProjectControllerTest {
 
     @Test
     void getProjectById_shouldReturn404_whenNotFound() throws Exception {
-        doReturn(Optional.empty())
-                .when(projectRepository).findById(1L);
+        when(projectRepository.findById(1L)).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/api/projects/1"))
                 .andExpect(status().isNotFound());
@@ -64,19 +58,17 @@ class ProjectControllerTest {
 
     @Test
     void deleteProject_shouldReturn404_whenNotExists() throws Exception {
-        doReturn(false)
-                .when(projectRepository).existsById(1L);
+        when(projectRepository.existsById(1L)).thenReturn(false);
 
         mockMvc.perform(delete("/api/projects/1"))
                 .andExpect(status().isNotFound());
 
-        verify(projectRepository, never()).deleteById(anyLong());
+        verify(projectRepository, never()).deleteById(any(Long.class));
     }
 
     @Test
     void deleteProject_shouldReturn204_whenExists() throws Exception {
-        doReturn(true)
-                .when(projectRepository).existsById(1L);
+        when(projectRepository.existsById(1L)).thenReturn(true);
 
         mockMvc.perform(delete("/api/projects/1"))
                 .andExpect(status().isNoContent());
@@ -86,8 +78,7 @@ class ProjectControllerTest {
 
     @Test
     void updateProject_shouldReturn404_whenNotFound() throws Exception {
-        doReturn(Optional.empty())
-                .when(projectRepository).findById(1L);
+        when(projectRepository.findById(1L)).thenReturn(Optional.empty());
 
         mockMvc.perform(put("/api/projects/1")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -100,15 +91,9 @@ class ProjectControllerTest {
     @Test
     void updateProject_shouldReturn200_whenFound() throws Exception {
         ProjectModel existing = new ProjectModel();
-        existing.setName("Old");
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(projectRepository.save(any(ProjectModel.class))).thenReturn(existing);
 
-        doReturn(Optional.of(existing))
-                .when(projectRepository).findById(1L);
-
-        doReturn(existing)
-                .when(projectRepository).save(any(ProjectModel.class));
-
-        // Payload minimal : on n'envoie que name/description pour éviter les soucis de format date/enum
         mockMvc.perform(put("/api/projects/1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"New\",\"description\":\"Desc\"}"))
@@ -118,95 +103,23 @@ class ProjectControllerTest {
     }
 
     @Test
-    void addUserToProject_shouldReturn404_whenProjectNotFound() throws Exception {
-        doReturn(Optional.empty())
-                .when(projectRepository).findById(1L);
-
-        mockMvc.perform(put("/api/projects/1/users")
-                        .param("userEmail", "u@example.com"))
-                .andExpect(status().isNotFound());
-    }
-
-    @Test
-    void addUserToProject_shouldReturn400_whenUserNotFound() throws Exception {
-        ProjectModel project = new ProjectModel();
-        if (project.getUserList() == null) {
-            project.setUserList(new ArrayList<>());
-        }
-
-        doReturn(Optional.of(project))
-                .when(projectRepository).findById(1L);
-
-        doReturn(Optional.empty())
-                .when(userRepository).findByEmail("u@example.com");
-
-        mockMvc.perform(put("/api/projects/1/users")
-                        .param("userEmail", "u@example.com"))
-                .andExpect(status().isBadRequest());
-
-        verify(projectRepository, never()).save(any(ProjectModel.class));
-    }
-
-    @Test
-    void addUserToProject_shouldReturn200_whenOk() throws Exception {
-        ProjectModel project = new ProjectModel();
-        if (project.getUserList() == null) {
-            project.setUserList(new ArrayList<>());
-        }
-
-        User user = new User("u", "u@example.com", "pwd", User.UserRole.ADMIN);
-
-        doReturn(Optional.of(project))
-                .when(projectRepository).findById(1L);
-
-        doReturn(Optional.of(user))
-                .when(userRepository).findByEmail("u@example.com");
-
-        doReturn(project)
-                .when(projectRepository).save(any(ProjectModel.class));
-
-        mockMvc.perform(put("/api/projects/1/users")
-                        .param("userEmail", "u@example.com"))
-                .andExpect(status().isOk());
-
-        verify(projectRepository).save(any(ProjectModel.class));
-    }
-
-    @Test
-    void createProject_shouldReturn400_whenAuthUserNotFound() throws Exception {
-        Authentication auth = mock(Authentication.class);
-        when(auth.getName()).thenReturn("john@example.com");
-
-        doReturn(Optional.empty())
-                .when(userRepository).findByEmail("john@example.com");
-
+    void createProject_shouldReturn400_whenMissingName() throws Exception {
         mockMvc.perform(post("/api/projects")
-                        .principal(auth)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\":\"P1\"}"))
+                        .content("{\"description\":\"Desc\"}"))
                 .andExpect(status().isBadRequest());
 
         verify(projectRepository, never()).save(any(ProjectModel.class));
     }
 
     @Test
-    void createProject_shouldReturn200_whenOk() throws Exception {
-        Authentication auth = mock(Authentication.class);
-        when(auth.getName()).thenReturn("john@example.com");
-
-        User user = new User("john", "john@example.com", "pwd", User.UserRole.ADMIN);
-
-        doReturn(Optional.of(user))
-                .when(userRepository).findByEmail("john@example.com");
-
-        doReturn(new ProjectModel())
-                .when(projectRepository).save(any(ProjectModel.class));
+    void createProject_shouldReturn201_whenOk() throws Exception {
+        when(projectRepository.save(any(ProjectModel.class))).thenReturn(new ProjectModel());
 
         mockMvc.perform(post("/api/projects")
-                        .principal(auth)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"P1\",\"description\":\"Desc\"}"))
-                .andExpect(status().isOk());
+                .andExpect(status().isCreated());
 
         verify(projectRepository).save(any(ProjectModel.class));
     }

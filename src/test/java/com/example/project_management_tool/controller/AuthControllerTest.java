@@ -7,19 +7,21 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(AuthController.class)
-@AutoConfigureMockMvc(addFilters = false)
+@WebMvcTest(controllers = AuthController.class)
+@AutoConfigureMockMvc
 class AuthControllerTest {
 
     @Autowired
@@ -36,12 +38,16 @@ class AuthControllerTest {
 
         ResponseEntity<?> response = ResponseEntity.status(HttpStatus.CREATED).body(responseBody);
 
-        doReturn(response)
-                .when(authService)
-                .register(eq("john"), eq("john@example.com"), eq("secret"), any(User.UserRole.class));
+        // ✅ évite les soucis de capture générique Mockito
+        doReturn(response).when(authService).register(
+                eq("john"),
+                eq("john@example.com"),
+                eq("secret"),
+                any(User.UserRole.class)
+        );
 
         mockMvc.perform(post("/api/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType("application/json")
                         .content("""
                                 {
                                   "username": "john",
@@ -59,16 +65,18 @@ class AuthControllerTest {
     void login_shouldReturnServiceResponse() throws Exception {
         Map<String, Object> responseBody = new HashMap<>();
         responseBody.put("status", "success");
-        responseBody.put("token", "abc");
+        responseBody.put("role", "ADMIN");
 
         ResponseEntity<?> response = ResponseEntity.ok(responseBody);
 
-        doReturn(response)
-                .when(authService)
-                .login(eq("john@example.com"), eq("secret"));
+        // ✅ évite les soucis de capture générique Mockito
+        doReturn(response).when(authService).login(
+                eq("john@example.com"),
+                eq("secret")
+        );
 
         mockMvc.perform(post("/api/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType("application/json")
                         .content("""
                                 {
                                   "email": "john@example.com",
@@ -77,6 +85,6 @@ class AuthControllerTest {
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("success"))
-                .andExpect(jsonPath("$.token").value("abc"));
+                .andExpect(jsonPath("$.role").value("ADMIN"));
     }
 }

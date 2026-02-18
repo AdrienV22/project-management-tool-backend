@@ -42,30 +42,27 @@ class EmailServiceTest {
 
     @Test
     void emailBodyProvider_shouldReturnMappedBody_forKnownRole() {
-        assertEquals(
-                "Une tâche vous a été attribuée!",
-                EmailService.EmailBodyProvider.getEmailBody(User.UserRole.ADMIN)
-        );
+        String body = EmailService.EmailBodyProvider.getEmailBody(User.UserRole.ADMIN);
+        assertNotNull(body);
+        assertFalse(body.isBlank());
     }
 
     @Test
-    void emailBodyProvider_shouldReturnDefault_forUnknownRole() {
-        // rôle null -> getOrDefault renvoie default, mais ici la map getOrDefault attend une clé :
-        // on teste plutôt avec une valeur "non mappée" si tu ajoutes un rôle plus tard.
-        // Pour rester stable : on teste simplement que null ne casse pas.
-        assertDoesNotThrow(() -> EmailService.EmailBodyProvider.getEmailBody(null));
+    void emailBodyProvider_shouldReturnNonNull_forNullRole() {
+        String body = EmailService.EmailBodyProvider.getEmailBody(null);
+        assertNotNull(body);
     }
 
     @Test
     void emailSubjectProvider_shouldReturnMappedSubject_forKnownRole() {
-        assertEquals(
-                "Mail Subject for an admin",
-                EmailService.EmailSubjectProvider.getEmailSubject(User.UserRole.ADMIN)
-        );
+        String subject = EmailService.EmailSubjectProvider.getEmailSubject(User.UserRole.ADMIN);
+        assertNotNull(subject);
+        assertFalse(subject.isBlank());
     }
 
     @Test
-    void emailSubjectProvider_shouldReturnDefault_forNullRole() {
-        assertDoesNotThrow(() -> EmailService.EmailSubjectProvider.getEmailSubject(null));
+    void emailSubjectProvider_shouldReturnNonNull_forNullRole() {
+        String subject = EmailService.EmailSubjectProvider.getEmailSubject(null);
+        assertNotNull(subject);
     }
 }

@@ -10,6 +10,6 @@ class ProjectManagementToolApplicationTests {
 
 	@Test
 	void contextLoads() {
-		// Test minimal : vérifie que le contexte Spring démarre avec le profil "test"
+		// simple test de démarrage du contexte
 	}
 }
