@@ -1,10 +1,12 @@
 package com.example.project_management_tool.controller;
 
+import com.example.project_management_tool.entity.User;
 import com.example.project_management_tool.model.ProjectModel;
 import com.example.project_management_tool.model.TaskModel;
 import com.example.project_management_tool.repository.ProjectRepository;
 import com.example.project_management_tool.repository.TaskRepository;
-import com.example.project_management_tool.service.TaskHistoryService;
+import com.example.project_management_tool.repository.UserRepository;
+import com.example.project_management_tool.service.EmailService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,26 +21,21 @@ public class TaskController {
 
     private final TaskRepository taskRepository;
     private final ProjectRepository projectRepository;
-    private final TaskHistoryService taskHistoryService;
+    private final UserRepository userRepository;
+    private final EmailService emailService;
 
-    public TaskController(TaskRepository taskRepository,
-                          ProjectRepository projectRepository,
-                          TaskHistoryService taskHistoryService) {
+    public TaskController(
+            TaskRepository taskRepository,
+            ProjectRepository projectRepository,
+            UserRepository userRepository,
+            EmailService emailService
+    ) {
         this.taskRepository = taskRepository;
         this.projectRepository = projectRepository;
-        this.taskHistoryService = taskHistoryService;
+        this.userRepository = userRepository;
+        this.emailService = emailService;
     }
 
-    /**
-     * US11 - Visualiser les tâches selon les statuts (dashboard)
-     * + filtre optionnel par projectId
-     *
-     * Exemples :
-     *  GET /api/tasks
-     *  GET /api/tasks?status=En%20attente
-     *  GET /api/tasks?projectId=5
-     *  GET /api/tasks?projectId=5&status=En%20attente
-     */
     @GetMapping
     public ResponseEntity<List<TaskModel>> getTasks(
             @RequestParam(required = false) String status,
@@ -56,9 +53,6 @@ public class TaskController {
         return ResponseEntity.ok(taskRepository.findAll());
     }
 
-    /**
-     * US9 - Visualiser une tâche unitaire
-     */
     @GetMapping("/{taskId}")
     public ResponseEntity<TaskModel> getTaskById(@PathVariable Long taskId) {
         return taskRepository.findById(taskId)
@@ -66,9 +60,6 @@ public class TaskController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    /**
-     * US6 - Créer une tâche pour un projet
-     */
     @PostMapping
     public ResponseEntity<?> createTask(@Valid @RequestBody TaskModel task) {
 
@@ -81,17 +72,24 @@ public class TaskController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("project not found");
         }
 
-        // rattacher au Project managé JPA
         task.setProject(managedProject);
 
         TaskModel saved = taskRepository.save(task);
+
+        // 📧 Notification à l’assignation (si targetUserId présent)
+        if (saved.getTargetUserId() != null) {
+            userRepository.findById(saved.getTargetUserId()).ifPresent(user -> {
+                emailService.sendTaskAssignedEmail(
+                        user.getEmail(),
+                        managedProject.getName(),
+                        saved.getTitle()
+                );
+            });
+        }
+
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
-    /**
-     * US8 - Mettre à jour une tâche (changer n’importe quelle info)
-     * + US12 - Historiser les modifications
-     */
     @PutMapping("/{taskId}")
     public ResponseEntity<?> updateTask(@PathVariable Long taskId,
                                         @Valid @RequestBody TaskModel updatedTask) {
@@ -101,34 +99,8 @@ public class TaskController {
             return ResponseEntity.notFound().build();
         }
 
-        // Pas de sécurité => on met une valeur simple, constante (acceptable pour l'étude de cas)
-        String modifiedBy = "API";
+        Long oldTargetUserId = existing.getTargetUserId();
 
-        // 1) Historique AVANT modification
-        taskHistoryService.recordChange(existing, "title", existing.getTitle(), updatedTask.getTitle(), modifiedBy);
-        taskHistoryService.recordChange(existing, "description", existing.getDescription(), updatedTask.getDescription(), modifiedBy);
-        taskHistoryService.recordChange(existing, "dueDate", existing.getDueDate(), updatedTask.getDueDate(), modifiedBy);
-        taskHistoryService.recordChange(existing, "status", existing.getStatus(), updatedTask.getStatus(), modifiedBy);
-        taskHistoryService.recordChange(existing, "priority", existing.getPriority(), updatedTask.getPriority(), modifiedBy);
-        taskHistoryService.recordChange(existing, "targetUserId", existing.getTargetUserId(), updatedTask.getTargetUserId(), modifiedBy);
-
-        // 2) Optionnel : changement de projet (si fourni)
-        if (updatedTask.getProject() != null && updatedTask.getProject().getId() != null) {
-            Long newProjectId = updatedTask.getProject().getId();
-            Long oldProjectId = (existing.getProject() != null) ? existing.getProject().getId() : null;
-
-            if (oldProjectId == null || !oldProjectId.equals(newProjectId)) {
-                ProjectModel managedProject = projectRepository.findById(newProjectId).orElse(null);
-                if (managedProject == null) {
-                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("project not found");
-                }
-
-                taskHistoryService.recordChange(existing, "projectId", oldProjectId, newProjectId, modifiedBy);
-                existing.setProject(managedProject);
-            }
-        }
-
-        // 3) Update effectif
         existing.setTitle(updatedTask.getTitle());
         existing.setDescription(updatedTask.getDescription());
         existing.setDueDate(updatedTask.getDueDate());
@@ -136,7 +108,32 @@ public class TaskController {
         existing.setPriority(updatedTask.getPriority());
         existing.setTargetUserId(updatedTask.getTargetUserId());
 
-        return ResponseEntity.ok(taskRepository.save(existing));
+        if (updatedTask.getProject() != null && updatedTask.getProject().getId() != null) {
+            ProjectModel managedProject = projectRepository.findById(updatedTask.getProject().getId()).orElse(null);
+            if (managedProject == null) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("project not found");
+            }
+            existing.setProject(managedProject);
+        }
+
+        TaskModel saved = taskRepository.save(existing);
+
+        // 📧 Notification si assignation/re-assignation (targetUserId change)
+        Long newTargetUserId = saved.getTargetUserId();
+        boolean changed = (oldTargetUserId == null && newTargetUserId != null)
+                || (oldTargetUserId != null && !oldTargetUserId.equals(newTargetUserId));
+
+        if (changed && newTargetUserId != null) {
+            userRepository.findById(newTargetUserId).ifPresent(user -> {
+                emailService.sendTaskAssignedEmail(
+                        user.getEmail(),
+                        saved.getProject().getName(),
+                        saved.getTitle()
+                );
+            });
+        }
+
+        return ResponseEntity.ok(saved);
     }
 
     @DeleteMapping("/{taskId}")
@@ -145,6 +142,6 @@ public class TaskController {
             return ResponseEntity.notFound().build();
         }
         taskRepository.deleteById(taskId);
-        return ResponseEntity.noContent().build(); // 204
+        return ResponseEntity.noContent().build();
     }
 }
