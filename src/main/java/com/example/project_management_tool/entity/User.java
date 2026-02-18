@@ -39,7 +39,7 @@ public class User {
     private String password;
 
     /**
-     * ✅ Stockage en STRING (ADMIN/MEMBRE/OBSERVATEUR)
+     * Stockage en STRING (ADMIN/MEMBRE/OBSERVATEUR)
      * - robuste (pas dépendant de l'ordre de l'enum)
      * - compatible H2/Postgres
      * - évite le problème TINYINT
