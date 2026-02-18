@@ -1,5 +1,7 @@
 package com.example.project_management_tool.model;
 
+import com.example.project_management_tool.entity.User;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -8,8 +10,6 @@ import lombok.Data;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-
-import com.example.project_management_tool.entity.User;
 
 @Entity
 @Table(name = "project_model")
@@ -38,8 +38,11 @@ public class ProjectModel {
     @ManyToMany
     private List<User> userList = new ArrayList<>();
 
-    // ✅ RELATION CORRECTE AVEC TaskModel
+    // RELATION CORRECTE AVEC TaskModel
+    // On ignore taskList côté JSON pour éviter la boucle infinie :
+    // Project -> taskList -> Task -> project -> taskList -> ...
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
     private List<TaskModel> taskList = new ArrayList<>();
 
     @NotNull(message = "Chef de projet (email) ne peut pas être null")
@@ -61,13 +64,5 @@ public class ProjectModel {
 
     public ProjectModel(String name, String description, LocalDate startDate) {
         this(name, description, startDate, "Non défini", null, null);
-    }
-
-    public String getClientEmail() {
-        return clientEmail;
-    }
-
-    public void setClientEmail(String clientEmail) {
-        this.clientEmail = clientEmail;
     }
 }
