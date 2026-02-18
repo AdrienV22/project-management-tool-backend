@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @CrossOrigin(origins = "http://localhost:4200", allowedHeaders = "*")
 @RestController
@@ -44,16 +45,11 @@ public class ProjectController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    /**
-     * Création de projet.
-     * Justification : la sécurité n'est pas requise, donc pas d'Authentication/SecurityContext.
-     */
     @PostMapping
     public ResponseEntity<?> createProject(@RequestBody ProjectModel project) {
         if (project.getName() == null || project.getName().isBlank()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Project name is required");
         }
-
         ProjectModel createdProject = projectRepository.save(project);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdProject);
     }
@@ -61,7 +57,6 @@ public class ProjectController {
     @PutMapping("/{id}")
     public ResponseEntity<ProjectModel> updateProject(@PathVariable Long id,
                                                       @RequestBody ProjectModel updatedProject) {
-
         return projectRepository.findById(id)
                 .map(existing -> {
                     existing.setName(updatedProject.getName());
@@ -85,46 +80,46 @@ public class ProjectController {
     }
 
     /**
-     * ✅ Option A — Invite un membre par email + attribue un rôle.
-     * Endpoint conservé : PUT /api/projects/{projectId}/users
-     *
-     * Body attendu :
-     * { "email": "x@y.com", "role": "MEMBRE" }
-     * role est optionnel -> MEMBRE par défaut
+     * ✅ Invite / ajoute un membre au projet (par email) + rôle
+     * Endpoint conservé: PUT /api/projects/{projectId}/users
+     * Body: { "email": "...", "role": "ADMIN|MEMBRE|OBSERVATEUR" }
      */
     @PutMapping("/{projectId}/users")
-    public ResponseEntity<?> addOrUpdateMember(@PathVariable Long projectId,
-                                               @Valid @RequestBody ProjectMemberRequest request) {
+    public ResponseEntity<?> addOrUpdateUserInProject(@PathVariable Long projectId,
+                                                      @Valid @RequestBody ProjectMemberRequest request) {
 
         ProjectModel project = projectRepository.findById(projectId).orElse(null);
         if (project == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Project not found");
         }
 
-        User user = userRepository.findByEmail(request.getEmail()).orElse(null);
-        if (user == null) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("User not found for email: " + request.getEmail());
+        Optional<User> userOpt = userRepository.findByEmail(request.getEmail());
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("User not found for email");
         }
 
-        ProjectMember.ProjectRole role =
-                (request.getRole() == null) ? ProjectMember.ProjectRole.MEMBRE : request.getRole();
+        User user = userOpt.get();
+
+        ProjectMember.ProjectRole role;
+        try {
+            role = ProjectMember.ProjectRole.valueOf(request.getRole().toUpperCase());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Invalid role. Expected: ADMIN, MEMBRE, OBSERVATEUR");
+        }
 
         ProjectMember member = projectMemberRepository
                 .findByProject_IdAndUser_Id(projectId, user.getId())
-                .orElseGet(ProjectMember::new);
+                .orElseGet(() -> new ProjectMember(project, user, role));
 
-        member.setProject(project);
-        member.setUser(user);
-        member.setRole(role);
-
+        member.setRole(role); // invite OU update du rôle
         ProjectMember saved = projectMemberRepository.save(member);
 
         ProjectMemberResponse response = new ProjectMemberResponse(
                 saved.getUser().getId(),
-                saved.getUser().getUsername(),
                 saved.getUser().getEmail(),
-                saved.getRole(),
+                saved.getUser().getUsername(),
+                saved.getRole().name(),
                 saved.getJoinedAt()
         );
 
@@ -132,11 +127,12 @@ public class ProjectController {
     }
 
     /**
-     * ✅ Liste les membres du projet + leurs rôles
+     * ✅ Liste des membres d’un projet
      * GET /api/projects/{projectId}/users
      */
     @GetMapping("/{projectId}/users")
-    public ResponseEntity<?> listMembers(@PathVariable Long projectId) {
+    public ResponseEntity<?> listProjectMembers(@PathVariable Long projectId) {
+
         if (!projectRepository.existsById(projectId)) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Project not found");
         }
@@ -145,9 +141,9 @@ public class ProjectController {
                 .stream()
                 .map(pm -> new ProjectMemberResponse(
                         pm.getUser().getId(),
-                        pm.getUser().getUsername(),
                         pm.getUser().getEmail(),
-                        pm.getRole(),
+                        pm.getUser().getUsername(),
+                        pm.getRole().name(),
                         pm.getJoinedAt()
                 ))
                 .toList();
