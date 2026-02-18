@@ -1,9 +1,9 @@
 package com.example.project_management_tool.controller;
 
 import com.example.project_management_tool.model.ProjectModel;
-import com.example.project_management_tool.model.TaskModel;
+import com.example.project_management_tool.repository.ProjectMemberRepository;
 import com.example.project_management_tool.repository.ProjectRepository;
-import com.example.project_management_tool.repository.TaskRepository;
+import com.example.project_management_tool.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -14,13 +14,12 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 import java.util.Optional;
-
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(controllers = TaskController.class)
+@WebMvcTest(controllers = ProjectController.class)
 @AutoConfigureMockMvc
 class TaskControllerTest {
 
@@ -28,99 +27,133 @@ class TaskControllerTest {
     private MockMvc mockMvc;
 
     @MockBean
-    private TaskRepository taskRepository;
-
-    @MockBean
     private ProjectRepository projectRepository;
 
-    @Test
-    void getAllTasks_shouldReturn200() throws Exception {
-        when(taskRepository.findAll()).thenReturn(List.of(new TaskModel()));
+    @MockBean
+    private UserRepository userRepository;
 
-        mockMvc.perform(get("/api/tasks"))
+    // IMPORTANT : ProjectController injecte aussi ce repo maintenant
+    @MockBean
+    private ProjectMemberRepository projectMemberRepository;
+
+    @Test
+    void getAllProjects_shouldReturn200() throws Exception {
+        when(projectRepository.findAll()).thenReturn(List.of(new ProjectModel()));
+
+        mockMvc.perform(get("/api/projects"))
                 .andExpect(status().isOk());
     }
 
     @Test
-    void createTask_shouldReturn400_whenMissingProjectId() throws Exception {
-        mockMvc.perform(post("/api/tasks")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"title\":\"T1\"}"))
-                .andExpect(status().isBadRequest());
+    void getProjectById_shouldReturn200_whenFound() throws Exception {
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(new ProjectModel()));
 
-        verify(taskRepository, never()).save(any());
-    }
-
-    @Test
-    void createTask_shouldReturn400_whenProjectNotFound() throws Exception {
-        when(projectRepository.findById(10L)).thenReturn(Optional.empty());
-
-        mockMvc.perform(post("/api/tasks")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"title\":\"T1\",\"project\":{\"id\":10}}"))
-                .andExpect(status().isBadRequest());
-
-        verify(taskRepository, never()).save(any());
-    }
-
-    @Test
-    void createTask_shouldReturn201_whenOk() throws Exception {
-        ProjectModel project = new ProjectModel();
-        project.setId(10L);
-        when(projectRepository.findById(10L)).thenReturn(Optional.of(project));
-        when(taskRepository.save(any(TaskModel.class))).thenReturn(new TaskModel());
-
-        mockMvc.perform(post("/api/tasks")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"title\":\"T1\",\"project\":{\"id\":10}}"))
-                .andExpect(status().isCreated());
-
-        verify(taskRepository).save(any(TaskModel.class));
-    }
-
-    @Test
-    void updateTask_shouldReturn404_whenNotFound() throws Exception {
-        when(taskRepository.findById(1L)).thenReturn(Optional.empty());
-
-        mockMvc.perform(put("/api/tasks/1")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"title\":\"New\"}"))
-                .andExpect(status().isNotFound());
-
-        verify(taskRepository, never()).save(any());
-    }
-
-    @Test
-    void updateTask_shouldReturn200_whenFound() throws Exception {
-        TaskModel existing = new TaskModel();
-        when(taskRepository.findById(1L)).thenReturn(Optional.of(existing));
-        when(taskRepository.save(any(TaskModel.class))).thenReturn(existing);
-
-        mockMvc.perform(put("/api/tasks/1")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"title\":\"New\",\"status\":\"DONE\"}"))
+        mockMvc.perform(get("/api/projects/1"))
                 .andExpect(status().isOk());
-
-        verify(taskRepository).save(any(TaskModel.class));
     }
 
     @Test
-    void deleteTask_shouldReturn404_whenNotFound() throws Exception {
-        when(taskRepository.existsById(5L)).thenReturn(false);
+    void getProjectById_shouldReturn404_whenNotFound() throws Exception {
+        when(projectRepository.findById(1L)).thenReturn(Optional.empty());
 
-        mockMvc.perform(delete("/api/tasks/5"))
+        mockMvc.perform(get("/api/projects/1"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void deleteProject_shouldReturn404_whenNotExists() throws Exception {
+        when(projectRepository.existsById(1L)).thenReturn(false);
+
+        mockMvc.perform(delete("/api/projects/1"))
                 .andExpect(status().isNotFound());
 
-        verify(taskRepository, never()).deleteById(anyLong());
+        verify(projectRepository, never()).deleteById(anyLong());
     }
 
     @Test
-    void deleteTask_shouldReturn204_whenFound() throws Exception {
-        when(taskRepository.existsById(5L)).thenReturn(true);
+    void deleteProject_shouldReturn204_whenExists() throws Exception {
+        when(projectRepository.existsById(1L)).thenReturn(true);
 
-        mockMvc.perform(delete("/api/tasks/5"))
+        mockMvc.perform(delete("/api/projects/1"))
                 .andExpect(status().isNoContent());
 
-        verify(taskRepository).deleteById(5L);
+        verify(projectRepository).deleteById(1L);
+    }
+
+    @Test
+    void updateProject_shouldReturn404_whenNotFound() throws Exception {
+        when(projectRepository.findById(1L)).thenReturn(Optional.empty());
+
+        mockMvc.perform(put("/api/projects/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name":"New",
+                                  "description":"Desc",
+                                  "startDate":"2026-02-18"
+                                }
+                                """))
+                .andExpect(status().isNotFound());
+
+        verify(projectRepository, never()).save(any(ProjectModel.class));
+    }
+
+    @Test
+    void updateProject_shouldReturn200_whenFound() throws Exception {
+        ProjectModel existing = new ProjectModel();
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(projectRepository.save(any(ProjectModel.class))).thenReturn(existing);
+
+        mockMvc.perform(put("/api/projects/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name":"New",
+                                  "description":"Desc",
+                                  "startDate":"2026-02-18",
+                                  "endDate":"2026-03-01",
+                                  "statut":"ACTIF",
+                                  "clientEmail":"client@example.com"
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        verify(projectRepository).save(any(ProjectModel.class));
+    }
+
+    @Test
+    void createProject_shouldReturn400_whenMissingName() throws Exception {
+        mockMvc.perform(post("/api/projects")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "description":"Desc",
+                                  "startDate":"2026-02-18",
+                                  "clientEmail":"client@example.com"
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+
+        verify(projectRepository, never()).save(any(ProjectModel.class));
+    }
+
+    @Test
+    void createProject_shouldReturn201_whenOk() throws Exception {
+        when(projectRepository.save(any(ProjectModel.class))).thenReturn(new ProjectModel());
+
+        mockMvc.perform(post("/api/projects")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name":"P1",
+                                  "description":"Desc",
+                                  "startDate":"2026-02-18",
+                                  "clientEmail":"client@example.com",
+                                  "statut":"ACTIF"
+                                }
+                                """))
+                .andExpect(status().isCreated());
+
+        verify(projectRepository).save(any(ProjectModel.class));
     }
 }

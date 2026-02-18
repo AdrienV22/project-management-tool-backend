@@ -38,7 +38,7 @@ class AuthControllerTest {
 
         ResponseEntity<?> response = ResponseEntity.status(HttpStatus.CREATED).body(responseBody);
 
-        // ✅ évite les soucis de capture générique Mockito
+        // évite les soucis de capture générique Mockito
         doReturn(response).when(authService).register(
                 eq("john"),
                 eq("john@example.com"),
@@ -69,7 +69,7 @@ class AuthControllerTest {
 
         ResponseEntity<?> response = ResponseEntity.ok(responseBody);
 
-        // ✅ évite les soucis de capture générique Mockito
+        // évite les soucis de capture générique Mockito
         doReturn(response).when(authService).login(
                 eq("john@example.com"),
                 eq("secret")
