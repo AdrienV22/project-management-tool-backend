@@ -7,6 +7,5 @@ import java.util.List;
 
 public interface TaskHistoryRepository extends JpaRepository<TaskHistory, Long> {
 
-    // Le nom le plus fiable avec relation ManyToOne : task.id
     List<TaskHistory> findByTask_IdOrderByModifiedAtDesc(Long taskId);
 }
