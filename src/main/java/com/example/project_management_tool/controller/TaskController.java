@@ -4,6 +4,7 @@ import com.example.project_management_tool.model.ProjectModel;
 import com.example.project_management_tool.model.TaskModel;
 import com.example.project_management_tool.repository.ProjectRepository;
 import com.example.project_management_tool.repository.TaskRepository;
+import com.example.project_management_tool.service.TaskHistoryService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,11 +19,14 @@ public class TaskController {
 
     private final TaskRepository taskRepository;
     private final ProjectRepository projectRepository;
+    private final TaskHistoryService taskHistoryService;
 
     public TaskController(TaskRepository taskRepository,
-                          ProjectRepository projectRepository) {
+                          ProjectRepository projectRepository,
+                          TaskHistoryService taskHistoryService) {
         this.taskRepository = taskRepository;
         this.projectRepository = projectRepository;
+        this.taskHistoryService = taskHistoryService;
     }
 
     /**
@@ -77,7 +81,7 @@ public class TaskController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("project not found");
         }
 
-        // Important : rattacher au Project managé JPA pour éviter la sérialisation récursive et erreurs Hibernate
+        // rattacher au Project managé JPA
         task.setProject(managedProject);
 
         TaskModel saved = taskRepository.save(task);
@@ -86,6 +90,7 @@ public class TaskController {
 
     /**
      * US8 - Mettre à jour une tâche (changer n’importe quelle info)
+     * + US12 - Historiser les modifications
      */
     @PutMapping("/{taskId}")
     public ResponseEntity<?> updateTask(@PathVariable Long taskId,
@@ -96,21 +101,40 @@ public class TaskController {
             return ResponseEntity.notFound().build();
         }
 
+        // Pas de sécurité => on met une valeur simple, constante (acceptable pour l'étude de cas)
+        String modifiedBy = "API";
+
+        // 1) Historique AVANT modification
+        taskHistoryService.recordChange(existing, "title", existing.getTitle(), updatedTask.getTitle(), modifiedBy);
+        taskHistoryService.recordChange(existing, "description", existing.getDescription(), updatedTask.getDescription(), modifiedBy);
+        taskHistoryService.recordChange(existing, "dueDate", existing.getDueDate(), updatedTask.getDueDate(), modifiedBy);
+        taskHistoryService.recordChange(existing, "status", existing.getStatus(), updatedTask.getStatus(), modifiedBy);
+        taskHistoryService.recordChange(existing, "priority", existing.getPriority(), updatedTask.getPriority(), modifiedBy);
+        taskHistoryService.recordChange(existing, "targetUserId", existing.getTargetUserId(), updatedTask.getTargetUserId(), modifiedBy);
+
+        // 2) Optionnel : changement de projet (si fourni)
+        if (updatedTask.getProject() != null && updatedTask.getProject().getId() != null) {
+            Long newProjectId = updatedTask.getProject().getId();
+            Long oldProjectId = (existing.getProject() != null) ? existing.getProject().getId() : null;
+
+            if (oldProjectId == null || !oldProjectId.equals(newProjectId)) {
+                ProjectModel managedProject = projectRepository.findById(newProjectId).orElse(null);
+                if (managedProject == null) {
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("project not found");
+                }
+
+                taskHistoryService.recordChange(existing, "projectId", oldProjectId, newProjectId, modifiedBy);
+                existing.setProject(managedProject);
+            }
+        }
+
+        // 3) Update effectif
         existing.setTitle(updatedTask.getTitle());
         existing.setDescription(updatedTask.getDescription());
         existing.setDueDate(updatedTask.getDueDate());
         existing.setStatus(updatedTask.getStatus());
         existing.setPriority(updatedTask.getPriority());
         existing.setTargetUserId(updatedTask.getTargetUserId());
-
-        // Optionnel : si tu autorises le changement de projet via PUT
-        if (updatedTask.getProject() != null && updatedTask.getProject().getId() != null) {
-            ProjectModel managedProject = projectRepository.findById(updatedTask.getProject().getId()).orElse(null);
-            if (managedProject == null) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("project not found");
-            }
-            existing.setProject(managedProject);
-        }
 
         return ResponseEntity.ok(taskRepository.save(existing));
     }
@@ -121,6 +145,6 @@ public class TaskController {
             return ResponseEntity.notFound().build();
         }
         taskRepository.deleteById(taskId);
-        return ResponseEntity.noContent().build(); // 204, propre REST
+        return ResponseEntity.noContent().build(); // 204
     }
 }

@@ -5,7 +5,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 
-
 public interface TaskHistoryRepository extends JpaRepository<TaskHistory, Long> {
-    List<TaskHistory> findByTaskId(Long taskId);
+
+    // Le nom le plus fiable avec relation ManyToOne : task.id
+    List<TaskHistory> findByTask_IdOrderByModifiedAtDesc(Long taskId);
 }
