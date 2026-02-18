@@ -1,68 +1,49 @@
 package com.example.project_management_tool.service;
 
-import com.example.project_management_tool.entity.User;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class EmailServiceTest {
 
-    @AfterEach
-    void cleanup() {
-        EmailService.mailSender = null;
+    @Test
+    void sendTaskAssignedEmail_shouldDoNothing_whenDisabled() {
+        JavaMailSender mailSender = mock(JavaMailSender.class);
+        EmailService emailService = new EmailService(mailSender);
+
+        // enabled reste false par défaut -> aucun envoi
+        emailService.sendTaskAssignedEmail("client@example.com", "PMT - Projet Démo", "Tache X");
+
+        verify(mailSender, never()).send(any(SimpleMailMessage.class));
     }
 
     @Test
-    void testMailSender_shouldReturnFalse_whenNull() {
-        EmailService.mailSender = null;
-        assertFalse(EmailService.testMailSender());
-    }
+    void sendTaskAssignedEmail_shouldSendMail_whenEnabled() {
+        JavaMailSender mailSender = mock(JavaMailSender.class);
+        EmailService emailService = new EmailService(mailSender);
 
-    @Test
-    void testMailSender_shouldReturnTrue_whenNotNull() {
-        EmailService.mailSender = mock(JavaMailSender.class);
-        assertTrue(EmailService.testMailSender());
-    }
+        // Force enabled=true (sans démarrer Spring)
+        ReflectionTestUtils.setField(emailService, "enabled", true);
 
-    @Test
-    void sendEmail_shouldCallMailSender_withExpectedMessage() {
-        JavaMailSender sender = mock(JavaMailSender.class);
-        EmailService.mailSender = sender;
+        emailService.sendTaskAssignedEmail("client@example.com", "PMT - Projet Démo", "Tache X");
 
-        User user = new User("john", "john@example.com", "pwd", User.UserRole.ADMIN);
+        ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
+        verify(mailSender, times(1)).send(captor.capture());
 
-        EmailService.sendEmail(user);
+        SimpleMailMessage sent = captor.getValue();
+        assertNotNull(sent);
 
-        verify(sender).send(any(SimpleMailMessage.class));
-    }
+        assertArrayEquals(new String[]{"client@example.com"}, sent.getTo());
+        assertEquals("[PMT] Tâche assignée", sent.getSubject());
 
-    @Test
-    void emailBodyProvider_shouldReturnMappedBody_forKnownRole() {
-        String body = EmailService.EmailBodyProvider.getEmailBody(User.UserRole.ADMIN);
-        assertNotNull(body);
-        assertFalse(body.isBlank());
-    }
-
-    @Test
-    void emailBodyProvider_shouldReturnNonNull_forNullRole() {
-        String body = EmailService.EmailBodyProvider.getEmailBody(null);
-        assertNotNull(body);
-    }
-
-    @Test
-    void emailSubjectProvider_shouldReturnMappedSubject_forKnownRole() {
-        String subject = EmailService.EmailSubjectProvider.getEmailSubject(User.UserRole.ADMIN);
-        assertNotNull(subject);
-        assertFalse(subject.isBlank());
-    }
-
-    @Test
-    void emailSubjectProvider_shouldReturnNonNull_forNullRole() {
-        String subject = EmailService.EmailSubjectProvider.getEmailSubject(null);
-        assertNotNull(subject);
+        String text = sent.getText();
+        assertNotNull(text);
+        assertTrue(text.contains("Tache X"));
+        assertTrue(text.contains("PMT - Projet Démo"));
     }
 }
