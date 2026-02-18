@@ -1,12 +1,12 @@
 package com.example.project_management_tool.controller;
 
-import com.example.project_management_tool.entity.User;
 import com.example.project_management_tool.model.ProjectModel;
 import com.example.project_management_tool.model.TaskModel;
 import com.example.project_management_tool.repository.ProjectRepository;
 import com.example.project_management_tool.repository.TaskRepository;
 import com.example.project_management_tool.repository.UserRepository;
 import com.example.project_management_tool.service.EmailService;
+import com.example.project_management_tool.service.TaskHistoryService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,19 +23,26 @@ public class TaskController {
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
     private final EmailService emailService;
+    private final TaskHistoryService taskHistoryService;
 
     public TaskController(
             TaskRepository taskRepository,
             ProjectRepository projectRepository,
             UserRepository userRepository,
-            EmailService emailService
+            EmailService emailService,
+            TaskHistoryService taskHistoryService
     ) {
         this.taskRepository = taskRepository;
         this.projectRepository = projectRepository;
         this.userRepository = userRepository;
         this.emailService = emailService;
+        this.taskHistoryService = taskHistoryService;
     }
 
+    /**
+     * US11 - Visualiser les tâches selon les statuts (dashboard)
+     * + filtre optionnel par projectId
+     */
     @GetMapping
     public ResponseEntity<List<TaskModel>> getTasks(
             @RequestParam(required = false) String status,
@@ -53,6 +60,9 @@ public class TaskController {
         return ResponseEntity.ok(taskRepository.findAll());
     }
 
+    /**
+     * US9 - Visualiser une tâche unitaire
+     */
     @GetMapping("/{taskId}")
     public ResponseEntity<TaskModel> getTaskById(@PathVariable Long taskId) {
         return taskRepository.findById(taskId)
@@ -60,6 +70,10 @@ public class TaskController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    /**
+     * US6 - Créer une tâche pour un projet
+     * + US12 (partiel) notification email à l'assignation
+     */
     @PostMapping
     public ResponseEntity<?> createTask(@Valid @RequestBody TaskModel task) {
 
@@ -72,6 +86,7 @@ public class TaskController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("project not found");
         }
 
+        // Rattacher au Project managé JPA
         task.setProject(managedProject);
 
         TaskModel saved = taskRepository.save(task);
@@ -90,6 +105,11 @@ public class TaskController {
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
+    /**
+     * US8 - Mettre à jour une tâche
+     * + US13 Historique des modifications
+     * + US12 (partiel) notification email si assignation/re-assignation
+     */
     @PutMapping("/{taskId}")
     public ResponseEntity<?> updateTask(@PathVariable Long taskId,
                                         @Valid @RequestBody TaskModel updatedTask) {
@@ -99,22 +119,38 @@ public class TaskController {
             return ResponseEntity.notFound().build();
         }
 
-        Long oldTargetUserId = existing.getTargetUserId();
+        String modifiedBy = "API"; // tu peux laisser comme ça pour le livrable
 
+        Long oldTargetUserId = existing.getTargetUserId();
+        Long oldProjectId = (existing.getProject() != null) ? existing.getProject().getId() : null;
+
+        // ✅ Historique AVANT modification
+        taskHistoryService.recordChange(existing, "title", existing.getTitle(), updatedTask.getTitle(), modifiedBy);
+        taskHistoryService.recordChange(existing, "description", existing.getDescription(), updatedTask.getDescription(), modifiedBy);
+        taskHistoryService.recordChange(existing, "dueDate", existing.getDueDate(), updatedTask.getDueDate(), modifiedBy);
+        taskHistoryService.recordChange(existing, "status", existing.getStatus(), updatedTask.getStatus(), modifiedBy);
+        taskHistoryService.recordChange(existing, "priority", existing.getPriority(), updatedTask.getPriority(), modifiedBy);
+        taskHistoryService.recordChange(existing, "targetUserId", existing.getTargetUserId(), updatedTask.getTargetUserId(), modifiedBy);
+
+        // Projet (optionnel)
+        if (updatedTask.getProject() != null && updatedTask.getProject().getId() != null) {
+            Long newProjectId = updatedTask.getProject().getId();
+            taskHistoryService.recordChange(existing, "projectId", oldProjectId, newProjectId, modifiedBy);
+
+            ProjectModel managedProject = projectRepository.findById(newProjectId).orElse(null);
+            if (managedProject == null) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("project not found");
+            }
+            existing.setProject(managedProject);
+        }
+
+        // ✅ Mise à jour
         existing.setTitle(updatedTask.getTitle());
         existing.setDescription(updatedTask.getDescription());
         existing.setDueDate(updatedTask.getDueDate());
         existing.setStatus(updatedTask.getStatus());
         existing.setPriority(updatedTask.getPriority());
         existing.setTargetUserId(updatedTask.getTargetUserId());
-
-        if (updatedTask.getProject() != null && updatedTask.getProject().getId() != null) {
-            ProjectModel managedProject = projectRepository.findById(updatedTask.getProject().getId()).orElse(null);
-            if (managedProject == null) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("project not found");
-            }
-            existing.setProject(managedProject);
-        }
 
         TaskModel saved = taskRepository.save(existing);
 
