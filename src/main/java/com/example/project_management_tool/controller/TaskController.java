@@ -86,6 +86,11 @@ public class TaskController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("project not found");
         }
 
+        if (task.getTitle() == null || task.getTitle().isBlank()) {
+            return ResponseEntity.badRequest().body("Task title is required");
+        }
+
+
         // Rattacher au Project managé JPA
         task.setProject(managedProject);
 
