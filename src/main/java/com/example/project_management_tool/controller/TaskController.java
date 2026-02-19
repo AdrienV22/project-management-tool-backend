@@ -40,8 +40,7 @@ public class TaskController {
     }
 
     /**
-     * US11 - Visualiser les tâches selon les statuts (dashboard)
-     * + filtre optionnel par projectId
+     * US11 - Dashboard + filtres
      */
     @GetMapping
     public ResponseEntity<List<TaskModel>> getTasks(
@@ -61,7 +60,7 @@ public class TaskController {
     }
 
     /**
-     * US9 - Visualiser une tâche unitaire
+     * US9 - Visualiser une tâche
      */
     @GetMapping("/{taskId}")
     public ResponseEntity<TaskModel> getTaskById(@PathVariable Long taskId) {
@@ -71,32 +70,38 @@ public class TaskController {
     }
 
     /**
-     * US6 - Créer une tâche pour un projet
-     * + US12 (partiel) notification email à l'assignation
+     * US6 - Créer une tâche
      */
     @PostMapping
     public ResponseEntity<?> createTask(@Valid @RequestBody TaskModel task) {
-
-        if (task.getProject() == null || task.getProject().getId() == null) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("project.id is required");
-        }
-
-        ProjectModel managedProject = projectRepository.findById(task.getProject().getId()).orElse(null);
-        if (managedProject == null) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("project not found");
-        }
 
         if (task.getTitle() == null || task.getTitle().isBlank()) {
             return ResponseEntity.badRequest().body("Task title is required");
         }
 
+        if (task.getProject() == null || task.getProject().getId() == null) {
+            return ResponseEntity.badRequest().body("project.id is required");
+        }
 
-        // Rattacher au Project managé JPA
+        ProjectModel managedProject =
+                projectRepository.findById(task.getProject().getId()).orElse(null);
+
+        if (managedProject == null) {
+            return ResponseEntity.badRequest().body("project not found");
+        }
+
+        // 🔐 Vérification utilisateur assigné
+        if (task.getTargetUserId() != null) {
+            if (!userRepository.existsById(task.getTargetUserId())) {
+                return ResponseEntity.badRequest().body("Target user not found");
+            }
+        }
+
         task.setProject(managedProject);
 
         TaskModel saved = taskRepository.save(task);
 
-        // 📧 Notification à l’assignation (si targetUserId présent)
+        // 📧 Email si assignation
         if (saved.getTargetUserId() != null) {
             userRepository.findById(saved.getTargetUserId()).ifPresent(user -> {
                 emailService.sendTaskAssignedEmail(
@@ -111,9 +116,9 @@ public class TaskController {
     }
 
     /**
-     * US8 - Mettre à jour une tâche
-     * + US13 Historique des modifications
-     * + US12 (partiel) notification email si assignation/re-assignation
+     * US8 - Mise à jour
+     * + US13 Historique
+     * + US12 Email si assignation
      */
     @PutMapping("/{taskId}")
     public ResponseEntity<?> updateTask(@PathVariable Long taskId,
@@ -124,12 +129,21 @@ public class TaskController {
             return ResponseEntity.notFound().build();
         }
 
-        String modifiedBy = "API"; // tu peux laisser comme ça pour le livrable
+        String modifiedBy = "API";
 
         Long oldTargetUserId = existing.getTargetUserId();
-        Long oldProjectId = (existing.getProject() != null) ? existing.getProject().getId() : null;
+        Long oldProjectId = (existing.getProject() != null)
+                ? existing.getProject().getId()
+                : null;
 
-        // ✅ Historique AVANT modification
+        // 🔐 Vérification utilisateur assigné
+        if (updatedTask.getTargetUserId() != null) {
+            if (!userRepository.existsById(updatedTask.getTargetUserId())) {
+                return ResponseEntity.badRequest().body("Target user not found");
+            }
+        }
+
+        // 📜 Historique AVANT modification
         taskHistoryService.recordChange(existing, "title", existing.getTitle(), updatedTask.getTitle(), modifiedBy);
         taskHistoryService.recordChange(existing, "description", existing.getDescription(), updatedTask.getDescription(), modifiedBy);
         taskHistoryService.recordChange(existing, "dueDate", existing.getDueDate(), updatedTask.getDueDate(), modifiedBy);
@@ -137,19 +151,23 @@ public class TaskController {
         taskHistoryService.recordChange(existing, "priority", existing.getPriority(), updatedTask.getPriority(), modifiedBy);
         taskHistoryService.recordChange(existing, "targetUserId", existing.getTargetUserId(), updatedTask.getTargetUserId(), modifiedBy);
 
-        // Projet (optionnel)
+        // Projet
         if (updatedTask.getProject() != null && updatedTask.getProject().getId() != null) {
+
             Long newProjectId = updatedTask.getProject().getId();
             taskHistoryService.recordChange(existing, "projectId", oldProjectId, newProjectId, modifiedBy);
 
-            ProjectModel managedProject = projectRepository.findById(newProjectId).orElse(null);
+            ProjectModel managedProject =
+                    projectRepository.findById(newProjectId).orElse(null);
+
             if (managedProject == null) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("project not found");
+                return ResponseEntity.badRequest().body("project not found");
             }
+
             existing.setProject(managedProject);
         }
 
-        // ✅ Mise à jour
+        // Mise à jour
         existing.setTitle(updatedTask.getTitle());
         existing.setDescription(updatedTask.getDescription());
         existing.setDueDate(updatedTask.getDueDate());
@@ -159,7 +177,7 @@ public class TaskController {
 
         TaskModel saved = taskRepository.save(existing);
 
-        // 📧 Notification si assignation/re-assignation (targetUserId change)
+        // 📧 Notification si assignation/re-assignation
         Long newTargetUserId = saved.getTargetUserId();
         boolean changed = (oldTargetUserId == null && newTargetUserId != null)
                 || (oldTargetUserId != null && !oldTargetUserId.equals(newTargetUserId));
