@@ -36,7 +36,6 @@ class ProjectControllerTest {
     @MockBean
     private UserRepository userRepository;
 
-    // ✅ Important : sinon @WebMvcTest ne démarre pas car le controller l’injecte
     @MockBean
     private ProjectMemberRepository projectMemberRepository;
 
@@ -94,7 +93,13 @@ class ProjectControllerTest {
 
         mockMvc.perform(put("/api/projects/1")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\":\"New\",\"description\":\"Desc\"}"))
+                        .content("""
+                                {
+                                  "name":"New",
+                                  "description":"Desc",
+                                  "startDate":"2026-01-01"
+                                }
+                                """))
                 .andExpect(status().isNotFound());
 
         verify(projectRepository, never()).save(any(ProjectModel.class));
@@ -108,7 +113,13 @@ class ProjectControllerTest {
 
         mockMvc.perform(put("/api/projects/1")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\":\"New\",\"description\":\"Desc\"}"))
+                        .content("""
+                                {
+                                  "name":"New",
+                                  "description":"Desc",
+                                  "startDate":"2026-01-01"
+                                }
+                                """))
                 .andExpect(status().isOk());
 
         verify(projectRepository).save(any(ProjectModel.class));
@@ -118,7 +129,27 @@ class ProjectControllerTest {
     void createProject_shouldReturn400_whenMissingName() throws Exception {
         mockMvc.perform(post("/api/projects")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"description\":\"Desc\"}"))
+                        .content("""
+                                {
+                                  "description":"Desc",
+                                  "startDate":"2026-01-01"
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+
+        verify(projectRepository, never()).save(any(ProjectModel.class));
+    }
+
+    @Test
+    void createProject_shouldReturn400_whenMissingStartDate() throws Exception {
+        mockMvc.perform(post("/api/projects")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name":"P1",
+                                  "description":"Desc"
+                                }
+                                """))
                 .andExpect(status().isBadRequest());
 
         verify(projectRepository, never()).save(any(ProjectModel.class));
@@ -130,7 +161,13 @@ class ProjectControllerTest {
 
         mockMvc.perform(post("/api/projects")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\":\"P1\",\"description\":\"Desc\"}"))
+                        .content("""
+                                {
+                                  "name":"P1",
+                                  "description":"Desc",
+                                  "startDate":"2026-01-01"
+                                }
+                                """))
                 .andExpect(status().isCreated());
 
         verify(projectRepository).save(any(ProjectModel.class));
@@ -142,7 +179,6 @@ class ProjectControllerTest {
 
     @Test
     void addOrUpdateUserInProject_shouldReturn400_whenBodyInvalid_missingEmailOrRole() throws Exception {
-        // @Valid rejette avant d'entrer dans le code si DTO invalide (email obligatoire)
         when(projectRepository.findById(1L)).thenReturn(Optional.of(new ProjectModel()));
 
         mockMvc.perform(put("/api/projects/1/users")
@@ -195,7 +231,6 @@ class ProjectControllerTest {
 
     @Test
     void addOrUpdateUserInProject_shouldReturn200_whenInviteOrUpdateOk() throws Exception {
-        // Arrange
         ProjectModel project = new ProjectModel();
         when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
 
@@ -205,17 +240,15 @@ class ProjectControllerTest {
         user.setUsername("adrien");
         when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
 
-        // Pas déjà membre -> orElseGet(new ProjectMember(...))
-        when(projectMemberRepository.findByProject_IdAndUser_Id(1L, 10L)).thenReturn(Optional.empty());
+        when(projectMemberRepository.findByProject_IdAndUser_Id(1L, 10L))
+                .thenReturn(Optional.empty());
 
-        // On renvoie un ProjectMember mocké, car le controller lit getUser/getRole/getJoinedAt
         ProjectMember saved = mock(ProjectMember.class);
         when(saved.getUser()).thenReturn(user);
         when(saved.getRole()).thenReturn(ProjectMember.ProjectRole.MEMBRE);
         when(saved.getJoinedAt()).thenReturn(LocalDateTime.now());
         when(projectMemberRepository.save(any(ProjectMember.class))).thenReturn(saved);
 
-        // Act + Assert
         mockMvc.perform(put("/api/projects/1/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"user@test.com\",\"role\":\"MEMBRE\"}"))

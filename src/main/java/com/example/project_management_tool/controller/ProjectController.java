@@ -45,11 +45,23 @@ public class ProjectController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    /**
+     * Création d’un projet
+     * Validation minimale pour éviter les erreurs 500
+     */
     @PostMapping
     public ResponseEntity<?> createProject(@RequestBody ProjectModel project) {
+
         if (project.getName() == null || project.getName().isBlank()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Project name is required");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Project name is required");
         }
+
+        if (project.getStartDate() == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Project startDate is required");
+        }
+
         ProjectModel createdProject = projectRepository.save(project);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdProject);
     }
@@ -80,9 +92,8 @@ public class ProjectController {
     }
 
     /**
-     * ✅ Invite / ajoute un membre au projet (par email) + rôle
-     * Endpoint conservé: PUT /api/projects/{projectId}/users
-     * Body: { "email": "...", "role": "ADMIN|MEMBRE|OBSERVATEUR" }
+     * Invite / ajoute un membre au projet (par email) + rôle
+     * PUT /api/projects/{projectId}/users
      */
     @PutMapping("/{projectId}/users")
     public ResponseEntity<?> addOrUpdateUserInProject(@PathVariable Long projectId,
@@ -95,7 +106,8 @@ public class ProjectController {
 
         Optional<User> userOpt = userRepository.findByEmail(request.getEmail());
         if (userOpt.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("User not found for email");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("User not found for email");
         }
 
         User user = userOpt.get();
@@ -112,7 +124,8 @@ public class ProjectController {
                 .findByProject_IdAndUser_Id(projectId, user.getId())
                 .orElseGet(() -> new ProjectMember(project, user, role));
 
-        member.setRole(role); // invite OU update du rôle
+        member.setRole(role);
+
         ProjectMember saved = projectMemberRepository.save(member);
 
         ProjectMemberResponse response = new ProjectMemberResponse(
@@ -127,7 +140,7 @@ public class ProjectController {
     }
 
     /**
-     * ✅ Liste des membres d’un projet
+     * Liste des membres d’un projet
      * GET /api/projects/{projectId}/users
      */
     @GetMapping("/{projectId}/users")
