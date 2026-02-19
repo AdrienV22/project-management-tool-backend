@@ -129,6 +129,11 @@ public class TaskController {
             return ResponseEntity.notFound().build();
         }
 
+        // ✅ AJOUT : refuser title vide comme pour POST
+        if (updatedTask.getTitle() == null || updatedTask.getTitle().isBlank()) {
+            return ResponseEntity.badRequest().body("Task title is required");
+        }
+
         String modifiedBy = "API";
 
         Long oldTargetUserId = existing.getTargetUserId();
